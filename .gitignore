@@ -1,0 +1,29 @@
+# Environment
+env/
+venv/
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django
+*.log
+db.sqlite3
+media/
+
+# VS Code
+.vscode/
+
+# Database
+*.sql
+
+#app
+dashboard/
+accounts/views.py
+accounts/urls.py
+accounts/serializers.py
+######################
+firebase_credentials.json
