@@ -1,9 +1,10 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from djoser.serializers import UserCreateSerializer as BaseUserCreateSerializer
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from accounts.models import Profile, User
-from rest_framework import serializers
+from accounts.serializers.profile import ProfileSerializer
 
 
 class DashboardTokenSerializer(TokenObtainPairSerializer):
@@ -27,25 +28,58 @@ class DashboardTokenSerializer(TokenObtainPairSerializer):
             return data
 
 
-class DashboardUserCreateSerializer(BaseUserCreateSerializer):
-    """Admin creates users — role and is_active are writable"""
+class DashboardUserCreateSerializer(serializers.ModelSerializer):
 
-    class Meta(BaseUserCreateSerializer.Meta):
-        fields = ['id', 'email', 'password',
-                  'first_name', 'last_name', 'role', 'is_active']
+    profile = ProfileSerializer(required=False)
+
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+
+        fields = [
+            'id',
+            'email',
+            'password',
+            'first_name',
+            'last_name',
+            'role',
+            'is_active',
+            'profile'
+        ]
+
         read_only_fields = ['is_active']
 
     def create(self, validated_data):
-        # Admin-created accounts are active immediately
+
+        profile_data = validated_data.pop('profile', {})
+
+        password = validated_data.pop('password')
+
         validated_data['is_active'] = True
-        return super().create(validated_data)
+
+        user = User.objects.create(**validated_data)
+
+        user.set_password(password)
+
+        user.save()
+
+        Profile.objects.update_or_create(
+            user=user,
+            defaults=profile_data
+        )
+
+        user.refresh_from_db()
+
+        return user
 
 
 class DashboardUserSerializer(BaseUserSerializer):
+    profile = ProfileSerializer(read_only=True)
 
     class Meta(BaseUserSerializer.Meta):
         fields = ['id', 'email', 'first_name',
-                  'last_name', 'role', 'is_active']
+                  'last_name', 'role', 'is_active', 'profile']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,6 +90,8 @@ class DashboardUserSerializer(BaseUserSerializer):
             self.fields['is_active'].read_only = True
 
     def update(self, instance, validated_data):
+        profile_data = self.initial_data.get('profile')
+
         request = self.context.get('request')
 
         if request and request.user.role != 'admin':
@@ -68,8 +104,16 @@ class DashboardUserSerializer(BaseUserSerializer):
             if admin_count <= 1:
                 validated_data.pop('role', None)
 
-        return super().update(instance, validated_data)
-    
+        user = super().update(instance, validated_data)
+        if profile_data:
+            profile_serializer = ProfileSerializer(
+                instance.profile,
+                data=profile_data,
+                partial=True
+            )
+            profile_serializer.is_valid(raise_exception=True)
+            profile_serializer.save()
+        return user
 
 class DeleteAccountSerializer(serializers.Serializer):
     current_password = serializers.CharField(write_only=True)
