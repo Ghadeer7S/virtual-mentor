@@ -41,7 +41,6 @@ class GoogleLoginView(APIView):
         email = decoded_token.get('email')
         full_name = decoded_token.get('name', '')
         picture = decoded_token.get('picture', '')
-        username = email.split('@')[0]
 
         # تقسيم الاسم الكامل
         name_parts = full_name.split(' ', 1)
@@ -51,7 +50,6 @@ class GoogleLoginView(APIView):
         user, created = User.objects.get_or_create(
             email=email,
             defaults={
-                'username': username,
                 'first_name': first_name,
                 'last_name': last_name,
                 'role': User.ROLE_STUDENT,
@@ -80,7 +78,6 @@ class GoogleLoginView(APIView):
             'user': {
                 'id': user.id,
                 'email': user.email,
-                'username': user.username,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
                 'role': user.role,

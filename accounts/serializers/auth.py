@@ -9,7 +9,7 @@ from accounts.models import User
 
 class UserCreateSerializer(BaseUserCreateSerializer):
     class Meta(BaseUserCreateSerializer.Meta):
-        fields = ['id', 'username', 'email', 'password', 'first_name', 'last_name']
+        fields = ['id', 'email', 'password', 'first_name', 'last_name']
         
     def create(self, validated_data):
         validated_data['role'] = User.ROLE_STUDENT
@@ -18,7 +18,7 @@ class UserCreateSerializer(BaseUserCreateSerializer):
 
 class UserSerializer(BaseUserSerializer):
     class Meta(BaseUserSerializer.Meta):
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        fields = ['id', 'email', 'first_name', 'last_name']
 
 # -----------------------------Activation----------------------------------
 

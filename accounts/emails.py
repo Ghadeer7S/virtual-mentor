@@ -3,7 +3,7 @@ from django.conf import settings
 
 
 def send_activation_email(user, code):
-    first_name = user.first_name or user.username
+    first_name = user.first_name or user.email
     html_message = f"""
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 10px;">
         <h2 style="color: #4A90E2;">Welcome to Our App 👋</h2>

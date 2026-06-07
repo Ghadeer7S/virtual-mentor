@@ -4,15 +4,16 @@ from .models import User, Profile
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ['username', 'email', 'first_name', 'last_name', 'is_staff']
+    list_display = ['email', 'first_name', 'last_name', 'is_staff']
     list_filter = ['is_superuser', 'is_staff']
+    ordering = ['first_name']
 
     add_fieldsets = (
         (
             None,
             {
                 "classes": ("wide",),
-                "fields": ("email", "username", "usable_password", "password1", "password2"),
+                "fields": ("email", "usable_password", "password1", "password2"),
             },
         ),
     )

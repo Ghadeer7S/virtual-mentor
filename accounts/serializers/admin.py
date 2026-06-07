@@ -31,7 +31,7 @@ class DashboardUserCreateSerializer(BaseUserCreateSerializer):
     """Admin creates users — role and is_active are writable"""
 
     class Meta(BaseUserCreateSerializer.Meta):
-        fields = ['id', 'username', 'email', 'password',
+        fields = ['id', 'email', 'password',
                   'first_name', 'last_name', 'role', 'is_active']
         read_only_fields = ['is_active']
 
@@ -44,7 +44,7 @@ class DashboardUserCreateSerializer(BaseUserCreateSerializer):
 class DashboardUserSerializer(BaseUserSerializer):
 
     class Meta(BaseUserSerializer.Meta):
-        fields = ['id', 'username', 'email', 'first_name',
+        fields = ['id', 'email', 'first_name',
                   'last_name', 'role', 'is_active']
     
     def __init__(self, *args, **kwargs):
