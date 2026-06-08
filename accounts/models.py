@@ -84,7 +84,7 @@ class Profile(models.Model):
     phone = models.CharField(max_length=255, blank=True)
     address = models.CharField(max_length=255, blank=True)
     birth_date = models.DateField(null=True, blank=True)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True)
 
 
 class OTPVerification(models.Model):

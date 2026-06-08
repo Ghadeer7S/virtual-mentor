@@ -1,8 +1,8 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
-from djoser.serializers import UserCreateSerializer as BaseUserCreateSerializer
 from djoser.serializers import UserSerializer as BaseUserSerializer
+from django.contrib.auth.password_validation import validate_password
 from accounts.models import Profile, User
 from accounts.serializers.profile import ProfileSerializer
 
@@ -32,7 +32,10 @@ class DashboardUserCreateSerializer(serializers.ModelSerializer):
 
     profile = ProfileSerializer(required=False)
 
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(
+        write_only=True,
+        validators=[validate_password]
+    )
 
     class Meta:
         model = User
@@ -58,11 +61,7 @@ class DashboardUserCreateSerializer(serializers.ModelSerializer):
 
         validated_data['is_active'] = True
 
-        user = User.objects.create(**validated_data)
-
-        user.set_password(password)
-
-        user.save()
+        user = User.objects.create_user(password=password, **validated_data)
 
         Profile.objects.update_or_create(
             user=user,

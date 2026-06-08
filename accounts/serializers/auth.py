@@ -12,7 +12,10 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     profile = ProfileSerializer(required=False)
 
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(
+        write_only=True,
+        validators=[validate_password]
+    )
 
     class Meta:
         model = User
@@ -34,11 +37,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
         validated_data['role'] = User.ROLE_STUDENT
 
-        user = User.objects.create(**validated_data)
+        user = User.objects.create_user(password=password, **validated_data)
 
-        user.set_password(password)
-
-        user.save()
 
         Profile.objects.update_or_create(
             user=user,
