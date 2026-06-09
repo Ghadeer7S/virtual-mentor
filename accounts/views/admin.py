@@ -12,6 +12,10 @@ from accounts.serializers.admin import (
     DeleteAccountSerializer,
 )
 from accounts.permissions import IsAdminOnly, IsEditorOnly
+from accounts.pagination import DynamicPagination
+from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -28,7 +32,20 @@ class DashboardLoginView(TokenObtainPairView):
 
 class DashboardUserViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'put', 'patch', 'delete']
-
+    pagination_class = DynamicPagination
+    filter_backends = [
+        DjangoFilterBackend,
+        SearchFilter
+    ]
+    filterset_fields = ['role', 'profile__gender']
+    search_fields = [
+        'email',
+        'first_name',
+        'last_name',
+        'profile__phone',
+        'profile__address'
+    ]
+    
     def get_permissions(self):
         if self.action == 'me':
             return [(IsAdminOnly | IsEditorOnly)()]
@@ -95,6 +112,33 @@ class DashboardUserViewSet(viewsets.ModelViewSet):
 
             request.user.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    def list(self, request, *args, **kwargs):
+
+        pagination = request.query_params.get(
+            'pagination',
+            'false'
+        ).lower() == 'true'
+
+        queryset = self.filter_queryset(self.get_queryset())
+
+        if not pagination:
+
+            serializer = self.get_serializer(
+                queryset,
+                many=True
+            )
+
+            return Response(serializer.data)
+
+        page = self.paginate_queryset(queryset)
+
+        serializer = self.get_serializer(
+            page,
+            many=True
+        )
+
+        return self.get_paginated_response(serializer.data)
 
 
 
