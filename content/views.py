@@ -14,7 +14,10 @@ from .serializers import (
 
 
 def is_editor_or_admin(user):
-    return user.role in ('admin', 'editor')
+    return (
+        user.is_authenticated
+        and user.role in ('admin', 'editor')
+    )
 
 
 # ─── Category ─────────────────────────────────────────────────────────────────
@@ -112,10 +115,10 @@ class ConceptViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrEditorOrReadOnly]
 
     def get_queryset(self):
-        lesson_id = self.kwargs.get('lesson_pk')
-        qs = Concept.objects.select_related('lesson__skill')
-        if lesson_id:
-            qs = qs.filter(lesson_id=lesson_id)
+        skill_id = self.kwargs.get('skill_pk')
+        qs = Concept.objects.select_related('skill')
+        if skill_id:
+            qs = qs.filter(skill_id=skill_id)
         return qs
 
     def get_serializer_class(self):
@@ -124,8 +127,8 @@ class ConceptViewSet(viewsets.ModelViewSet):
         return ConceptStudentSerializer
 
     def perform_create(self, serializer):
-        lesson_id = self.kwargs.get('lesson_pk')
-        serializer.save(lesson_id=lesson_id)
+        skill_id = self.kwargs.get('skill_pk')
+        serializer.save(skill_id=skill_id)
 
 
 # ─── Question ─────────────────────────────────────────────────────────────────

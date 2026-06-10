@@ -54,7 +54,7 @@ class ConceptSerializer(serializers.ModelSerializer):
     class Meta:
         model = Concept
         fields = [
-            'id', 'name', 'explanation',
+            'id', 'level', 'name', 'explanation',
             'examples'
         ]
 
@@ -65,7 +65,7 @@ class ConceptStudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Concept
         fields = [
-            'id', 'name', 'explanation',
+            'id', 'level', 'name', 'explanation',
             'examples'
         ]
 
