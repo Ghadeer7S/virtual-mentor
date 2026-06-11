@@ -11,7 +11,10 @@ from .serializers import (
     ConceptSerializer, ConceptStudentSerializer,
     QuestionSerializer, QuestionStudentSerializer,
 )
-
+from accounts.pagination import DynamicPagination
+# from rest_framework.filters import SearchFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import RoleAwareSearchFilter
 
 def is_editor_or_admin(user):
     return (
@@ -24,6 +27,14 @@ def is_editor_or_admin(user):
 
 class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrEditorOrReadOnly]
+    pagination_class = DynamicPagination
+    
+    filter_backends = [DjangoFilterBackend, RoleAwareSearchFilter]
+    filterset_fields = ['is_active']
+    search_fields = [
+        'name', 'description', 'icon', 'created_at'
+    ]
+    student_search_fields = ['name', 'description', 'icon']
 
     def get_queryset(self):
         if is_editor_or_admin(self.request.user):
@@ -34,12 +45,29 @@ class CategoryViewSet(viewsets.ModelViewSet):
         if is_editor_or_admin(self.request.user):
             return CategorySerializer
         return CategoryStudentSerializer
+    
+    def paginate_queryset(self, queryset):
+
+        paginate = self.request.query_params.get('paginate')
+
+        if paginate == 'true':
+            return super().paginate_queryset(queryset)
+
+        return None
 
 
 # ─── Subject ──────────────────────────────────────────────────────────────────
 
 class SubjectViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrEditorOrReadOnly]
+    pagination_class = DynamicPagination
+    filter_backends = [DjangoFilterBackend, RoleAwareSearchFilter]
+    
+    filterset_fields = ['is_active']
+    search_fields = [
+        'name', 'description', 'icon', 'created_at'
+    ]
+    student_search_fields = ['name', 'description', 'icon']
 
     def get_queryset(self):
         category_id = self.kwargs.get('category_pk')
@@ -59,11 +87,27 @@ class SubjectViewSet(viewsets.ModelViewSet):
         category_id = self.kwargs.get('category_pk')
         serializer.save(category_id=category_id)
 
+    def paginate_queryset(self, queryset):
+
+        paginate = self.request.query_params.get('paginate')
+
+        if paginate == 'true':
+            return super().paginate_queryset(queryset)
+
+        return None
 
 # ─── Skill ────────────────────────────────────────────────────────────────────
 
 class SkillViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrEditorOrReadOnly]
+    pagination_class = DynamicPagination
+    filter_backends = [DjangoFilterBackend, RoleAwareSearchFilter]
+    
+    filterset_fields = ['is_active']
+    search_fields = [
+        'name', 'description', 'created_at'
+    ]
+    student_search_fields = ['name', 'description']
 
     def get_queryset(self):
         subject_id = self.kwargs.get('subject_pk')
@@ -82,6 +126,15 @@ class SkillViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         subject_id = self.kwargs.get('subject_pk')
         serializer.save(subject_id=subject_id)
+
+    def paginate_queryset(self, queryset):
+
+        paginate = self.request.query_params.get('paginate')
+
+        if paginate == 'true':
+            return super().paginate_queryset(queryset)
+
+        return None
 
 
 # ─── PlacementQuestion ────────────────────────────────────────────────────────

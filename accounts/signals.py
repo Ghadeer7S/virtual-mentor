@@ -9,8 +9,9 @@ from .emails import send_activation_email, send_reset_email
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_profile(sender, instance, created, **kwargs):
     if created:
-        Profile.objects.create(user=instance)
-        if not instance.is_active:
+        Profile.objects.get_or_create(user=instance)
+        
+        if not instance.is_active and instance.role == 'student':
             _send_otp(instance)
 
 
