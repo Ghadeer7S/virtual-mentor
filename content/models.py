@@ -73,9 +73,7 @@ class PlacementQuestion(models.Model):
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES)
     concept = models.ForeignKey(
         'Concept',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        on_delete=models.CASCADE,
         related_name='placement_questions'
     )
     options = models.JSONField(
@@ -83,7 +81,7 @@ class PlacementQuestion(models.Model):
         blank=True,
         help_text='For multiple_choice: ["option1", "option2", ...]'
     )
-    correct_answer = models.CharField(max_length=500)
+    correct_answer = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -106,17 +104,38 @@ class Concept(models.Model):
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES)
     name = models.CharField(max_length=200)
     explanation = models.TextField()
-    examples = models.JSONField(
-        default=list,
-        help_text='[{"code": "...", "output": "...", "explanation": "..."}]'
-    )
+    reference_title = models.CharField(max_length=100, blank=True)
+    reference_url = models.URLField(blank=True)
+    reference_type = models.CharField(max_length=50, blank=True)
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    placement_questions_count = models.PositiveIntegerField(default=0)
+    training_questions_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+        
+    def __str__(self):
+        return f"{self.skill.name} | {self.name}"
+    
+
+class ConceptExample(models.Model):
+    concept = models.ForeignKey(Concept, on_delete=models.CASCADE, related_name='examples')
+    question = models.TextField()
+    solve = models.TextField()
+    explanation = models.TextField()
+    order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ['order']
 
     def __str__(self):
-        return f"{self.lesson.title} | {self.name}"
+        return f"{self.concept.name} | Example {self.order}"
 
 
-class Question(models.Model):
+class TrainingQuestion(models.Model):
     TYPE_CHOICES = [
         ('multiple_choice', 'Multiple Choice'),
         ('true_false', 'True / False'),
@@ -127,7 +146,7 @@ class Question(models.Model):
     concept = models.ForeignKey(
         Concept,
         on_delete=models.CASCADE,
-        related_name='questions'
+        related_name='training_questions'
     )
     question_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     question = models.TextField()
@@ -136,12 +155,12 @@ class Question(models.Model):
         blank=True,
         help_text='للـ multiple_choice: ["خيار1", "خيار2", ...]'
     )
-    correct_answer = models.CharField(max_length=500)
+    correct_answer = models.TextField()
     explanation = models.TextField(
         help_text='يظهر للطالب بعد الإجابة دائماً'
     )
     hint = models.CharField(
-        max_length=500,
+        max_length=255,
         blank=True,
         help_text='يظهر عند طلب الطالب تلميحاً'
     )

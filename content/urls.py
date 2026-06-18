@@ -6,7 +6,7 @@ from .views import (
     SkillViewSet,
     PlacementQuestionViewSet,
     ConceptViewSet,
-    QuestionViewSet,
+    TrainingQuestionViewSet,
 )
 
 # /api/categories/
@@ -66,8 +66,14 @@ concepts_router = routers.NestedDefaultRouter(
 
 concepts_router.register(
     r'questions',
-    QuestionViewSet,
+    TrainingQuestionViewSet,
     basename='concept-questions'
+)
+
+concepts_router.register(
+    r'placement-questions',
+    PlacementQuestionViewSet,
+    basename='concept-placement-questions'
 )
 
 urlpatterns = [

@@ -1,35 +1,52 @@
 from rest_framework import serializers
 from .models import (
                         Category, Subject, Skill,PlacementQuestion,
-                        Concept, Question
+                        Concept, TrainingQuestion
                     )
 
 
 # ─── Placement Questions ──────────────────────────────────────────────────────
 
 class PlacementQuestionSerializer(serializers.ModelSerializer):
+    concept_name = serializers.CharField(
+        source='concept.name',
+        read_only=True
+    )
+
     class Meta:
         model = PlacementQuestion
         fields = [
             'id', 'question', 'question_type', 'level',
-            'concept', 'options', 'correct_answer'
+            'concept', 'concept_name', 'options', 'correct_answer'
         ]
 
 
 class PlacementQuestionStudentSerializer(serializers.ModelSerializer):
+    concept_name = serializers.CharField(
+        source='concept.name',
+        read_only=True
+    )
+    
     class Meta:
         model = PlacementQuestion
         fields = [
             'id', 'question', 'question_type',
-            'level', 'concept', 'options'
+            'level', 'concept_name', 'options'
         ]
 
-
-# ─── Questions ────────────────────────────────────────────────────────────────
-
-class QuestionSerializer(serializers.ModelSerializer):
+class ConceptPlacementQuestionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Question
+        model = PlacementQuestion
+        fields = [
+            'id', 'question', 'question_type', 'level', 'options',
+            'correct_answer'
+        ]
+
+# ─── Training Questions ────────────────────────────────────────────────────────────────
+
+class TrainingQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrainingQuestion
         fields = [
             'id', 'question_type', 'question',
             'options', 'correct_answer', 'explanation',
@@ -37,9 +54,9 @@ class QuestionSerializer(serializers.ModelSerializer):
         ]
 
 
-class QuestionStudentSerializer(serializers.ModelSerializer):
+class TrainingQuestionStudentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Question
+        model = TrainingQuestion
         fields = [
             'id', 'question_type', 'question',
             'options', 'hint'
@@ -54,9 +71,11 @@ class ConceptSerializer(serializers.ModelSerializer):
     class Meta:
         model = Concept
         fields = [
-            'id', 'level', 'name', 'explanation',
-            'examples'
+            'id', 'level', 'name', 'explanation', 'reference_title',
+            'reference_url', 'reference_type', 'is_active', 'order',
+            'created_at', 'placement_questions_count', 'training_questions_count'
         ]
+        read_only_fields = ['created_at', 'placement_questions_count', 'training_questions_count']
 
 
 class ConceptStudentSerializer(serializers.ModelSerializer):
@@ -65,8 +84,8 @@ class ConceptStudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Concept
         fields = [
-            'id', 'level', 'name', 'explanation',
-            'examples'
+            'id', 'level', 'name', 'explanation', 'reference_title',
+            'reference_url', 'reference_type',
         ]
 
 

@@ -1,15 +1,16 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-
-from .models import Category, Subject, Skill, PlacementQuestion, Concept, Question
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Category, Subject, Skill, PlacementQuestion, Concept, TrainingQuestion
 from .permissions import IsAdminOrEditor, IsAdminOrEditorOrReadOnly
 from .serializers import (
-    CategorySerializer, CategoryStudentSerializer,
+    CategorySerializer, CategoryStudentSerializer, ConceptPlacementQuestionSerializer,
     SubjectSerializer, SubjectStudentSerializer,
     SkillSerializer, SkillStudentSerializer,
     PlacementQuestionSerializer, PlacementQuestionStudentSerializer,
     ConceptSerializer, ConceptStudentSerializer,
-    QuestionSerializer, QuestionStudentSerializer,
+    TrainingQuestionSerializer, TrainingQuestionStudentSerializer,
 )
 from accounts.pagination import DynamicPagination
 # from rest_framework.filters import SearchFilter
@@ -110,12 +111,20 @@ class SkillViewSet(viewsets.ModelViewSet):
     student_search_fields = ['name', 'description']
 
     def get_queryset(self):
+        category_id = self.kwargs.get('category_pk')
         subject_id = self.kwargs.get('subject_pk')
-        qs = Skill.objects.select_related('subject__category')
-        if subject_id:
-            qs = qs.filter(subject_id=subject_id)
+
+        qs = Skill.objects.select_related(
+            'subject',
+            'subject__category'
+        ).filter(
+            subject_id=subject_id,
+            subject__category_id=category_id
+        )
+
         if not is_editor_or_admin(self.request.user):
             qs = qs.filter(is_active=True)
+
         return qs
 
     def get_serializer_class(self):
@@ -147,18 +156,64 @@ class PlacementQuestionViewSet(viewsets.ModelViewSet):
         return [IsAdminOrEditor()]
 
     def get_serializer_class(self):
+        concept_id = self.kwargs.get('concept_pk')
+        
+        if concept_id:
+            return ConceptPlacementQuestionSerializer
+        
         if is_editor_or_admin(self.request.user):
             return PlacementQuestionSerializer
         return PlacementQuestionStudentSerializer
 
     def get_queryset(self):
+        category_id = self.kwargs.get('category_pk')
+        subject_id = self.kwargs.get('subject_pk')
         skill_id = self.kwargs.get('skill_pk')
-        return PlacementQuestion.objects.filter(skill_id=skill_id)
+        concept_id = self.kwargs.get('concept_pk')
 
-    def perform_create(self, serializer):
+        qs = PlacementQuestion.objects.select_related(
+            'skill',
+            'skill__subject',
+            'skill__subject__category',
+            'concept'
+        ).filter(
+            skill_id=skill_id,
+            skill__subject_id=subject_id,
+            skill__subject__category_id=category_id
+        )
+
+        if concept_id:
+            qs = qs.filter(concept_id=concept_id)
+
+        return qs
+    
+    def create(self, request, *args, **kwargs):
+
+        many = isinstance(request.data, list)
+
+        serializer = self.get_serializer(
+            data=request.data,
+            many=many
+        )
+
+        serializer.is_valid(raise_exception=True)
+
         skill_id = self.kwargs.get('skill_pk')
-        serializer.save(skill_id=skill_id)
 
+        concept_id = self.kwargs.get('concept_pk')
+
+        if concept_id:
+            serializer.save(
+                skill_id=skill_id,
+                concept_id=concept_id
+            )
+        else:
+            serializer.save(skill_id=skill_id)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED
+        )
 
 
 
@@ -168,11 +223,19 @@ class ConceptViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrEditorOrReadOnly]
 
     def get_queryset(self):
+        category_id = self.kwargs.get('category_pk')
+        subject_id = self.kwargs.get('subject_pk')
         skill_id = self.kwargs.get('skill_pk')
-        qs = Concept.objects.select_related('skill')
-        if skill_id:
-            qs = qs.filter(skill_id=skill_id)
-        return qs
+
+        return Concept.objects.select_related(
+            'skill',
+            'skill__subject',
+            'skill__subject__category'
+        ).filter(
+            skill_id=skill_id,
+            skill__subject_id=subject_id,
+            skill__subject__category_id=category_id
+        )
 
     def get_serializer_class(self):
         if is_editor_or_admin(self.request.user):
@@ -186,7 +249,7 @@ class ConceptViewSet(viewsets.ModelViewSet):
 
 # ─── Question ─────────────────────────────────────────────────────────────────
 
-class QuestionViewSet(viewsets.ModelViewSet):
+class TrainingQuestionViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
@@ -194,14 +257,45 @@ class QuestionViewSet(viewsets.ModelViewSet):
         return [IsAdminOrEditor()]
 
     def get_queryset(self):
+        category_id = self.kwargs.get('category_pk')
+        subject_id = self.kwargs.get('subject_pk')
+        skill_id = self.kwargs.get('skill_pk')
         concept_id = self.kwargs.get('concept_pk')
-        return Question.objects.filter(concept_id=concept_id)
+
+        qs = TrainingQuestion.objects.select_related(
+            'concept',
+            'concept__skill',
+            'concept__skill__subject',
+            'concept__skill__subject__category'
+        ).filter(
+            concept_id=concept_id,
+            concept__skill_id=skill_id,
+            concept__skill__subject_id=subject_id,
+            concept__skill__subject__category_id=category_id
+        )
+        return qs
 
     def get_serializer_class(self):
         if is_editor_or_admin(self.request.user):
-            return QuestionSerializer
-        return QuestionStudentSerializer
+            return TrainingQuestionSerializer
+        return TrainingQuestionStudentSerializer
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+
+        many = isinstance(request.data, list)
+
+        serializer = self.get_serializer(
+            data=request.data,
+            many=many
+        )
+
+        serializer.is_valid(raise_exception=True)
+
         concept_id = self.kwargs.get('concept_pk')
+
         serializer.save(concept_id=concept_id)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED
+        )
