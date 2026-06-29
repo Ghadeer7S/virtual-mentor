@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/', include('accounts.urls')),
     path('dashboard/', include('accounts.urls.admin')),
     path('api/', include('content.urls')),
+    path('api/', include('progress.urls')),
 
 ] + debug_toolbar_urls()
 
