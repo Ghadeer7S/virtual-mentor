@@ -84,7 +84,6 @@ class Profile(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     first_name = models.CharField(max_length=255, blank=True)
     last_name = models.CharField(max_length=255, blank=True)
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     phone = models.CharField(max_length=255, blank=True)
     address = models.CharField(max_length=255, blank=True)
     birth_date = models.DateField(null=True, blank=True)

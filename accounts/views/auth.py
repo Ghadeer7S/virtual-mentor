@@ -13,7 +13,7 @@ from accounts.serializers.auth import (
                           ResetPasswordSerializer
                           )
 from accounts.models import Profile, User, OTPVerification, PasswordResetOTP
-from accounts.signals import _send_otp, _send_reset_otp
+from accounts.services.user_service import send_otp, send_reset_otp
 from firebase_admin import auth as firebase_auth
 
 
@@ -40,7 +40,6 @@ class GoogleLoginView(APIView):
 
         email = decoded_token.get('email')
         full_name = decoded_token.get('name', '')
-        picture = decoded_token.get('picture', '')
 
         # تقسيم الاسم الكامل
         name_parts = full_name.split(' ', 1)
@@ -66,8 +65,6 @@ class GoogleLoginView(APIView):
         if profile_created:
             profile.first_name = first_name
             profile.last_name = last_name
-            if picture:
-                profile.avatar = picture
             profile.save()
 
         refresh = RefreshToken.for_user(user)
@@ -179,7 +176,7 @@ class ResendOTPView(GenericAPIView):
         except OTPVerification.DoesNotExist:
             pass
 
-        _send_otp(user)
+        send_otp(user)
         return Response({'detail': 'If this email exists, a new code has been sent'})    
 
 # ---------------------------Reset-Password--------------------------------------------------------------------------
@@ -214,7 +211,7 @@ class ForgotPasswordView(GenericAPIView):
         except PasswordResetOTP.DoesNotExist:
             pass
 
-        _send_reset_otp(user)
+        send_reset_otp(user)
         return Response({'detail': 'If this email exists, a reset code has been sent'})
 
 
