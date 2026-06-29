@@ -4,7 +4,7 @@ from django.conf import settings
 import random
 from django.utils import timezone
 from datetime import timedelta
-
+from content.models import Category
 
 class UserManager(BaseUserManager):
 
@@ -45,6 +45,8 @@ class User(AbstractUser):
     ]
 
     username = None
+    first_name = None
+    last_name = None
     email = models.EmailField(unique=True)
     is_active = models.BooleanField(default=False)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_STUDENT)
@@ -80,11 +82,20 @@ class Profile(models.Model):
     
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    first_name = models.CharField(max_length=255, blank=True)
+    last_name = models.CharField(max_length=255, blank=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     phone = models.CharField(max_length=255, blank=True)
     address = models.CharField(max_length=255, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True)
+    current_category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='students'
+    )
 
 
 class OTPVerification(models.Model):

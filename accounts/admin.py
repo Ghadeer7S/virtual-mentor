@@ -4,9 +4,9 @@ from .models import User, Profile
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ['email', 'first_name', 'last_name', 'is_staff']
+    list_display = ['email', 'is_staff']
     list_filter = ['is_superuser', 'is_staff']
-    ordering = ['first_name']
+    ordering = ['email']
 
     add_fieldsets = (
         (
