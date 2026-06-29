@@ -50,8 +50,6 @@ class GoogleLoginView(APIView):
         user, created = User.objects.get_or_create(
             email=email,
             defaults={
-                'first_name': first_name,
-                'last_name': last_name,
                 'role': User.ROLE_STUDENT,
                 'is_active': True,
             }
@@ -64,8 +62,12 @@ class GoogleLoginView(APIView):
             )
 
         profile, profile_created = Profile.objects.get_or_create(user=user)
-        if profile_created and picture:
-            profile.avatar = picture
+
+        if profile_created:
+            profile.first_name = first_name
+            profile.last_name = last_name
+            if picture:
+                profile.avatar = picture
             profile.save()
 
         refresh = RefreshToken.for_user(user)
@@ -78,8 +80,8 @@ class GoogleLoginView(APIView):
             'user': {
                 'id': user.id,
                 'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
                 'role': user.role,
                 'is_new': created,
             }

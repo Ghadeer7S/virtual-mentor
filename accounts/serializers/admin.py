@@ -44,8 +44,6 @@ class DashboardUserCreateSerializer(serializers.ModelSerializer):
             'id',
             'email',
             'password',
-            'first_name',
-            'last_name',
             'role',
             'is_active',
             'profile'
@@ -77,8 +75,7 @@ class DashboardUserSerializer(BaseUserSerializer):
     profile = ProfileSerializer(read_only=True)
 
     class Meta(BaseUserSerializer.Meta):
-        fields = ['id', 'email', 'first_name',
-                  'last_name', 'role', 'is_active', 'profile']
+        fields = ['id', 'email', 'role', 'is_active', 'profile']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

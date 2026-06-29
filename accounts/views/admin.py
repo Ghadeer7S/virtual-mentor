@@ -40,8 +40,8 @@ class DashboardUserViewSet(viewsets.ModelViewSet):
     filterset_fields = ['role', 'profile__gender']
     search_fields = [
         'email',
-        'first_name',
-        'last_name',
+        'profile__first_name',
+        'profile__last_name',
         'profile__phone',
         'profile__address'
     ]
