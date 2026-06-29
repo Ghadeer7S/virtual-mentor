@@ -24,8 +24,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'id',
             'email',
             'password',
-            'first_name',
-            'last_name',
             'profile'
         ]
 
@@ -53,7 +51,7 @@ class UserSerializer(BaseUserSerializer):
     profile = ProfileSerializer(read_only=True)
     
     class Meta(BaseUserSerializer.Meta):
-        fields = ['id', 'email', 'first_name', 'last_name', 'profile']
+        fields = ['id', 'email', 'profile']
 
     def update(self, instance, validated_data):
 
