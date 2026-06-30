@@ -219,3 +219,6 @@ cred = credentials.Certificate(BASE_DIR / 'firebase_credentials.json')
 firebase_admin.initialize_app(cred)
 
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'

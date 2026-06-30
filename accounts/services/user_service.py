@@ -9,7 +9,9 @@ def send_otp(user):
         user=user,
         defaults={'code': code}
     )
-    send_activation_email(user, code)
+    user.refresh_from_db()
+    first_name = user.profile.first_name or user.email
+    send_activation_email.delay(user.email, first_name, code)
 
 
 def send_reset_otp(user):
@@ -18,4 +20,6 @@ def send_reset_otp(user):
         user=user,
         defaults={'code': code}
     )
-    send_reset_email(user, code)
+    user.refresh_from_db()
+    first_name = user.profile.first_name or user.email
+    send_reset_email.delay(user.email, first_name, code)

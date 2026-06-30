@@ -109,7 +109,7 @@ class OTPVerification(models.Model):
         return timezone.now() > self.created_at + timedelta(minutes=10)
     
     def is_on_cooldown(self):
-        return timezone.now() < self.created_at + timedelta(minutes=2)
+        return timezone.now() < self.created_at + timedelta(minutes=1)
 
     def __str__(self):
         return f"{self.user.email} - {self.code}"
@@ -125,7 +125,7 @@ class PasswordResetOTP(models.Model):
         return timezone.now() > self.created_at + timedelta(minutes=10)
 
     def is_on_cooldown(self):
-        return timezone.now() < self.created_at + timedelta(minutes=2)
+        return timezone.now() < self.created_at + timedelta(minutes=1)
 
     def __str__(self):
         return f"{self.user.email} - {self.code}"

@@ -1,14 +1,15 @@
+from celery import shared_task
 from django.core.mail import send_mail
 from django.conf import settings
 
 
-def send_activation_email(user, code):
-    first_name = user.first_name or user.email
+@shared_task
+def send_activation_email(user_email, user_first_name, code):
     html_message = f"""
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 10px;">
         <h2 style="color: #4A90E2;">Welcome to Our App 👋</h2>
         <p style="font-size: 16px; color: #333;">
-            Thank you for registering, <strong>{first_name}</strong>!<br>
+            Thank you for registering, <strong>{user_first_name}</strong>!<br>
             We hope you enjoy a great learning journey with us.
         </p>
         <p style="font-size: 16px; color: #333;">Your activation code is:</p>
@@ -30,19 +31,19 @@ def send_activation_email(user, code):
         subject='Your Activation Code',
         message=f'Your activation code is: {code}\nValid for 10 minutes.',
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
+        recipient_list=[user_email],
         html_message=html_message,
         fail_silently=False,
     )
 
 
-def send_reset_email(user, code):
-    first_name = user.first_name or user.username
+@shared_task
+def send_reset_email(user_email, user_first_name, code):
     html_message = f"""
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 10px;">
         <h2 style="color: #4A90E2;">Password Reset Request 🔐</h2>
         <p style="font-size: 16px; color: #333;">
-            Hello, <strong>{first_name}</strong>!<br>
+            Hello, <strong>{user_first_name}</strong>!<br>
             We received a request to reset your password.
         </p>
         <p style="font-size: 16px; color: #333;">Your password reset code is:</p>
@@ -64,7 +65,7 @@ def send_reset_email(user, code):
         subject='Password Reset Code',
         message=f'Your password reset code is: {code}\nValid for 10 minutes.',
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
+        recipient_list=[user_email],
         html_message=html_message,
         fail_silently=False,
     )
