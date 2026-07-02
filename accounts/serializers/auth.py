@@ -6,6 +6,8 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from accounts.serializers.profile import ProfileSerializer
 from accounts.models import User, Profile
+from accounts.services.user_service import send_otp
+from django.db import transaction
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -27,6 +29,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'profile'
         ]
 
+    @transaction.atomic
     def create(self, validated_data):
 
         profile_data = validated_data.pop('profile', {})
@@ -44,6 +47,9 @@ class UserCreateSerializer(serializers.ModelSerializer):
         )
 
         user.refresh_from_db()
+
+        if not user.is_active:
+            send_otp(user)
 
         return user
 
