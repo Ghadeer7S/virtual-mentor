@@ -21,25 +21,46 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
+        fields = ['id', 'email', 'password', 'profile']
+        extra_kwargs = {
+            'email': {'validators': []}
+        }
 
-        fields = [
-            'id',
-            'email',
-            'password',
-            'profile'
-        ]
+    def validate_email(self, value):
+        value = value.lower().strip()
+
+        if User.objects.filter(email=value, is_active=True).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+
+        if User.objects.filter(email=value, is_active=False).exclude(
+            role=User.ROLE_STUDENT
+        ).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+
+        return value
 
     @transaction.atomic
     def create(self, validated_data):
-
         profile_data = validated_data.pop('profile', {})
-
         password = validated_data.pop('password')
+        email = validated_data['email']
 
-        validated_data['role'] = User.ROLE_STUDENT
+        existing_user = User.objects.select_for_update().filter(
+            email=email,
+            is_active=False,
+            role=User.ROLE_STUDENT
+        ).first()
 
-        user = User.objects.create_user(password=password, **validated_data)
-
+        if existing_user:
+            for field, value in validated_data.items():
+                setattr(existing_user, field, value)
+            existing_user.set_password(password)
+            existing_user.role = User.ROLE_STUDENT
+            existing_user.save()
+            user = existing_user
+        else:
+            validated_data['role'] = User.ROLE_STUDENT
+            user = User.objects.create_user(password=password, **validated_data)
 
         Profile.objects.update_or_create(
             user=user,
@@ -49,7 +70,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         user.refresh_from_db()
 
         if not user.is_active:
-            send_otp(user)
+            transaction.on_commit(lambda: send_otp(user))
 
         return user
 

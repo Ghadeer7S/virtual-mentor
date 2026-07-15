@@ -62,7 +62,7 @@ class GoogleLoginView(APIView):
 
         profile, profile_created = Profile.objects.get_or_create(user=user)
 
-        if profile_created:
+        if created:
             profile.first_name = first_name
             profile.last_name = last_name
             profile.save()
