@@ -90,18 +90,12 @@ class PlacementQuestion(models.Model):
 
 
 class Concept(models.Model):
-    LEVEL_CHOICES = [
-        ('beginner', 'Beginner'),
-        ('intermediate', 'Intermediate'),
-        ('advanced', 'Advanced'),
-    ]
 
     skill = models.ForeignKey(
         Skill,
         on_delete=models.CASCADE,
         related_name='concepts'
     )
-    level = models.CharField(max_length=20, choices=LEVEL_CHOICES)
     name = models.CharField(max_length=200)
     explanation = models.TextField()
     reference_title = models.CharField(max_length=100, blank=True)
@@ -121,21 +115,14 @@ class Concept(models.Model):
         return f"{self.skill.name} | {self.name}"
     
 
-class ConceptExample(models.Model):
-    concept = models.ForeignKey(Concept, on_delete=models.CASCADE, related_name='examples')
-    question = models.TextField()
-    solve = models.TextField()
-    explanation = models.TextField()
-    order = models.PositiveIntegerField(default=1)
-
-    class Meta:
-        ordering = ['order']
-
-    def __str__(self):
-        return f"{self.concept.name} | Example {self.order}"
-
 
 class TrainingQuestion(models.Model):
+    LEVEL_CHOICES = [
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
+    ]
+
     TYPE_CHOICES = [
         ('multiple_choice', 'Multiple Choice'),
         ('true_false', 'True / False'),
@@ -148,6 +135,7 @@ class TrainingQuestion(models.Model):
         on_delete=models.CASCADE,
         related_name='training_questions'
     )
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='beginner')
     question_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     question = models.TextField()
     options = models.JSONField(
