@@ -48,18 +48,9 @@ class TrainingQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrainingQuestion
         fields = [
-            'id', 'question_type', 'question',
+            'id', 'level', 'question_type', 'question',
             'options', 'correct_answer', 'explanation',
             'hint'
-        ]
-
-
-class TrainingQuestionStudentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TrainingQuestion
-        fields = [
-            'id', 'question_type', 'question',
-            'options', 'hint'
         ]
 
 
@@ -71,7 +62,7 @@ class ConceptSerializer(serializers.ModelSerializer):
     class Meta:
         model = Concept
         fields = [
-            'id', 'level', 'name', 'explanation', 'reference_title',
+            'id', 'name', 'explanation', 'reference_title',
             'reference_url', 'reference_type', 'is_active', 'order',
             'created_at', 'placement_questions_count', 'training_questions_count'
         ]
@@ -84,7 +75,7 @@ class ConceptStudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Concept
         fields = [
-            'id', 'level', 'name', 'explanation', 'reference_title',
+            'id', 'name', 'explanation', 'reference_title',
             'reference_url', 'reference_type',
         ]
 

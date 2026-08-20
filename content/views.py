@@ -8,9 +8,9 @@ from .serializers import (
     CategorySerializer, CategoryStudentSerializer, ConceptPlacementQuestionSerializer,
     SubjectSerializer, SubjectStudentSerializer,
     SkillSerializer, SkillStudentSerializer,
-    PlacementQuestionSerializer, PlacementQuestionStudentSerializer,
+    PlacementQuestionSerializer,
     ConceptSerializer, ConceptStudentSerializer,
-    TrainingQuestionSerializer, TrainingQuestionStudentSerializer,
+    TrainingQuestionSerializer
 )
 from accounts.pagination import DynamicPagination
 # from rest_framework.filters import SearchFilter
@@ -151,8 +151,6 @@ class SkillViewSet(viewsets.ModelViewSet):
 class PlacementQuestionViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
-        if self.action in ('list', 'retrieve'):
-            return [IsAuthenticated()]
         return [IsAdminOrEditor()]
 
     def get_serializer_class(self):
@@ -163,7 +161,6 @@ class PlacementQuestionViewSet(viewsets.ModelViewSet):
         
         if is_editor_or_admin(self.request.user):
             return PlacementQuestionSerializer
-        return PlacementQuestionStudentSerializer
 
     def get_queryset(self):
         category_id = self.kwargs.get('category_pk')
@@ -252,8 +249,6 @@ class ConceptViewSet(viewsets.ModelViewSet):
 class TrainingQuestionViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
-        if self.action in ('list', 'retrieve'):
-            return [IsAuthenticated()]
         return [IsAdminOrEditor()]
 
     def get_queryset(self):
@@ -278,7 +273,6 @@ class TrainingQuestionViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if is_editor_or_admin(self.request.user):
             return TrainingQuestionSerializer
-        return TrainingQuestionStudentSerializer
 
     def create(self, request, *args, **kwargs):
 
