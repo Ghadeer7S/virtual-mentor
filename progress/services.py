@@ -10,9 +10,13 @@ from .models import (
     PlacementQuestionHistory,
     UserSkillProfile,
     UserConceptProfile,
+    TrainingSession,
+    TrainingSessionQuestion,
+    TrainingAnswer,
+    TrainingQuestionHistory,
 )
 from django.db.models import Subquery, OuterRef
-from content.models import Category, Subject, Skill, Concept, PlacementQuestion
+from content.models import Category, Subject, Skill, Concept, PlacementQuestion, TrainingQuestion
 
 # ───── بناء الجلسة ─────
 
@@ -368,7 +372,7 @@ def reset_skill_progress(user, skill):
 
 #-----------------------------------------------احصائيات عامة لكل التخصصات-------------------------------------------------------------------------------
 
-def get_progress_overview(user):
+def get_progress_overview(user, request):
 
     categories = Category.objects.filter(is_active=True)
     result = []
@@ -436,7 +440,7 @@ def get_progress_overview(user):
             'id':          category.id,
             'name':        category.name,
             'description': category.description,
-            'icon':        category.icon,
+            'icon': request.build_absolute_uri(category.icon.url) if category.icon else None,
             'stats': {
                 'total_subjects':    total_subjects,
                 'total_skills':      total_skills,
@@ -461,7 +465,7 @@ def get_progress_overview(user):
 #_______________________________احصائيات خاصة بالتخصص_________________________________________________________________
 #_____________________________________________________________________________________________________________________
 
-def get_category_progress(user, category_id):
+def get_category_progress(user, category_id, request):
     from content.models import Category, Subject, Skill, Concept
     from django.utils import timezone
     from datetime import timedelta
@@ -567,6 +571,7 @@ def get_category_progress(user, category_id):
             'id':          subject.id,
             'name':        subject.name,
             'description': subject.description,
+            'icon': request.build_absolute_uri(subject.icon.url) if subject.icon else None,
             'stats': {
                 'total_skills':        total_skills,
                 'total_concepts':      total_concepts,
@@ -604,7 +609,7 @@ def get_category_progress(user, category_id):
             'id':           category.id,
             'name':         category.name,
             'description':  category.description,
-            'icon':         category.icon,
+            'icon': request.build_absolute_uri(category.icon.url) if category.icon else None,
             'total_subjects': total_subjects,
         },
         'subjects': subjects_data,
@@ -619,3 +624,217 @@ def get_category_progress(user, category_id):
             'total_xp':            summary_xp,
         },
     }
+
+#_________________________________________________________________________________________________________
+#___________________________________Training______________________________________________________________
+#_________________________________________________________________________________________________________
+
+XP_PER_CORRECT_ANSWER = 10
+
+TRAINING_PLAN = {
+    'beginner': 3,
+    'intermediate': 4,
+    'advanced': 3,
+}
+
+
+# ───── التحقق من جاهزية المفهوم للتدريب ─────
+
+def get_valid_training_concepts(skill):
+    concepts = Concept.objects.filter(skill=skill, is_active=True)
+    valid = []
+    for concept in concepts:
+        qs = TrainingQuestion.objects.filter(concept=concept)
+        if (
+            qs.filter(level='beginner').count() >= TRAINING_PLAN['beginner'] and
+            qs.filter(level='intermediate').count() >= TRAINING_PLAN['intermediate'] and
+            qs.filter(level='advanced').count() >= TRAINING_PLAN['advanced']
+        ):
+            valid.append(concept)
+    return valid
+
+
+# ───── اختيار المفهوم الأضعف تلقائياً ─────
+
+def select_auto_training_concept(user, skill):
+    valid_concepts = get_valid_training_concepts(skill)
+    if not valid_concepts:
+        return None
+
+    STATUS_PRIORITY = {'weak': 1, 'improving': 2, 'not_started': 3, 'strong': 4}
+    ordered_concepts = []
+    for concept in valid_concepts:
+        profile = UserConceptProfile.objects.filter(user=user, concept=concept).first()
+        status = profile.status if profile else 'not_started'
+        times_trained = profile.times_trained if profile else 0
+
+        ordered_concepts.append({
+            'concept': concept,
+            'priority': STATUS_PRIORITY[status],
+            'times_trained': times_trained,
+            'order': getattr(concept, 'order', concept.id),
+        })
+
+    ordered_concepts.sort(
+        key=lambda item: (item['priority'], item['times_trained'], item['order'])
+    )
+    return ordered_concepts[0]['concept']
+
+
+# ───── بناء جلسة التدريب ─────
+
+def build_training_session(user, skill, mode='manual', concept=None):
+    if mode == 'auto':
+        concept = select_auto_training_concept(user, skill)
+        if not concept:
+            return None, {'reason': 'no_valid_concepts'}
+    else:
+        if not concept:
+            return None, {'reason': 'concept_required'}
+        if concept not in get_valid_training_concepts(skill):
+            return None, {'reason': 'concept_not_ready'}
+
+    questions = []
+    for level, count in TRAINING_PLAN.items():
+        level_qs = TrainingQuestion.objects.filter(concept=concept, level=level)
+        level_qs = level_qs.order_by(
+            Subquery(
+                TrainingQuestionHistory.objects.filter(
+                    user=user, question=OuterRef('pk')
+                ).values('times_seen')[:1]
+            ).asc(nulls_first=True)
+        )
+        selected = list(level_qs[:count])
+        if len(selected) < count:
+            return None, {'reason': 'not_enough_questions'}
+        questions.extend(selected)
+
+    shuffle(questions)
+
+    session = TrainingSession.objects.create(
+        user=user, skill=skill, concept=concept, mode=mode
+    )
+    for idx, q in enumerate(questions):
+        TrainingSessionQuestion.objects.create(session=session, question=q, order=idx)
+
+    return session, None
+
+
+# ───── إرسال إجابة سؤال واحد ─────
+
+def submit_training_answer(session, question_id, user_answer):
+    session_question = session.session_questions.filter(question_id=question_id).first()
+    if not session_question:
+        raise ValidationError('السؤال لا ينتمي لهذه الجلسة')
+
+    if TrainingAnswer.objects.filter(session=session, question_id=question_id).exists():
+        raise ValidationError('تم الإجابة على هذا السؤال مسبقاً')
+
+    question = session_question.question
+    is_correct = question.correct_answer.strip() == (user_answer or '').strip()
+
+    TrainingAnswer.objects.create(
+        session=session,
+        question=question,
+        user_answer=user_answer,
+        is_correct=is_correct,
+    )
+
+    # تحديث تاريخ السؤال لهذا الطالب
+    history, _ = TrainingQuestionHistory.objects.get_or_create(user=session.user, question=question)
+    history.times_seen += 1
+    if is_correct:
+        history.times_correct += 1
+    history.last_result = 'correct' if is_correct else 'wrong'
+    history.save()
+
+    # الـ xp يزيد فقط عند الإجابة الصحيحة، بغض النظر عن استخدام hint
+    xp_earned = 0
+    if is_correct:
+        xp_earned = XP_PER_CORRECT_ANSWER
+        session.xp_earned += xp_earned
+        session.save(update_fields=['xp_earned'])
+
+        profile, _ = UserSkillProfile.objects.get_or_create(user=session.user, skill=session.skill)
+        profile.xp_total += xp_earned
+        profile.save(update_fields=['xp_total'])
+
+    return {
+        'question_id': question.id,
+        'is_correct': is_correct,
+        'correct_answer': question.correct_answer,
+        'explanation': question.explanation,
+        'xp_earned': xp_earned,
+        'session_xp_total': session.xp_earned,
+    }
+
+
+# ───── إنهاء الجلسة ─────
+
+def complete_training_session(session):
+    if session.completed_at:
+        return session.result
+
+    total = session.session_questions.count()
+    answers = session.answers.select_related('question')
+
+    correct_count = sum(1 for a in answers if a.is_correct)
+    wrong_count = total - correct_count
+
+    answered_questions = [
+        {
+            'question_id': a.question.id,
+            'question': a.question.question,
+            'question_type': a.question.question_type,
+            'level': a.question.level,
+            'user_answer': a.user_answer,
+            'correct_answer': a.question.correct_answer,
+            'is_correct': a.is_correct,
+            'explanation': a.question.explanation,
+        }
+        for a in answers
+    ]
+
+    wrong_questions = [
+        {
+            'question_id': a.question.id,
+            'question': a.question.question,
+            'question_type': a.question.question_type,
+            'level': a.question.level,
+            'user_answer': a.user_answer,
+            'correct_answer': a.question.correct_answer,
+            'explanation': a.question.explanation,
+        }
+        for a in answers if not a.is_correct
+    ]
+
+    answered_ids = {a.question_id for a in answers}
+    unanswered = session.session_questions.exclude(question_id__in=answered_ids).select_related('question')
+
+    unanswered_questions = [
+        {
+            'question_id': sq.question.id,
+            'question': sq.question.question,
+            'question_type': sq.question.question_type,
+            'level': sq.question.level,
+            'correct_answer': sq.question.correct_answer,
+            'explanation': sq.question.explanation,
+        }
+        for sq in unanswered
+    ]
+
+    session.completed_at = timezone.now()
+    session.result = {
+        'total_questions': total,
+        'answered_questions_count': answers.count(),
+        'answered_questions': answered_questions,
+        'correct_count': correct_count,
+        'wrong_count': wrong_count,
+        'xp_earned': session.xp_earned,
+        'score': round(correct_count / total * 100) if total else 0,
+        'wrong_questions': wrong_questions,
+        'unanswered_questions': unanswered_questions,
+    }
+    session.save()
+
+    return session.result

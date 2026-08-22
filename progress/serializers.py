@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import PlacementSession, PlacementSessionQuestion, PlacementAnswer
+from .models import PlacementSession, PlacementSessionQuestion, TrainingSession, TrainingSessionQuestion
 from content.serializers import PlacementQuestionStudentSerializer, SkillStudentSerializer, ConceptStudentSerializer
+from content.models import TrainingQuestion
 
 
 # ───── عرض الجلسة للطالب ─────
@@ -88,3 +89,42 @@ class UserConceptProfileSerializer(serializers.ModelSerializer):
             'id', 'concept', 'status',
             'avg_score', 'times_trained', 'updated_at'
         ]
+
+
+#________________Training_________________________________________________
+#_________________________________________________________________________
+
+class TrainingQuestionTrainingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrainingQuestion
+        fields = ['id', 'level', 'question_type', 'question', 'options', 'hint']
+
+
+class TrainingSessionQuestionSerializer(serializers.ModelSerializer):
+    question = TrainingQuestionTrainingSerializer(read_only=True)
+
+    class Meta:
+        model = TrainingSessionQuestion
+        fields = ['order', 'question']
+
+
+class TrainingSessionSerializer(serializers.ModelSerializer):
+    questions    = TrainingSessionQuestionSerializer(source='session_questions', many=True, read_only=True)
+    concept_name = serializers.CharField(source='concept.name', read_only=True)
+
+    class Meta:
+        model = TrainingSession
+        fields = ['id', 'skill', 'concept', 'concept_name', 'mode', 'started_at', 'questions']
+
+
+class TrainingAnswerInputSerializer(serializers.Serializer):
+    question_id = serializers.IntegerField()
+    user_answer = serializers.CharField(allow_blank=True)
+
+
+class TrainingSessionHistorySerializer(serializers.ModelSerializer):
+    concept_name = serializers.CharField(source='concept.name', read_only=True)
+
+    class Meta:
+        model = TrainingSession
+        fields = ['id', 'skill', 'concept', 'concept_name', 'mode', 'started_at', 'completed_at', 'result']

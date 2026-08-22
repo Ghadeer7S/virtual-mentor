@@ -2,10 +2,11 @@ from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from content.models import Skill
-from .models import PlacementSession, UserConceptProfile, UserSkillProfile
-from .serializers import PlacementSessionHistorySerializer, PlacementSessionSerializer, PlacementSubmitSerializer, SkillNotStartedSerializer, UserConceptProfileSerializer, UserSkillProfileSerializer
-from .services import build_placement_session, calculate_and_save_result, get_category_progress, get_progress_overview, reset_skill_progress
+from content.models import Concept, Skill
+from .models import PlacementSession, TrainingSession, UserConceptProfile, UserSkillProfile
+from .serializers import PlacementSessionHistorySerializer, PlacementSessionSerializer, PlacementSubmitSerializer, SkillNotStartedSerializer, TrainingAnswerInputSerializer, TrainingSessionHistorySerializer, TrainingSessionSerializer, UserConceptProfileSerializer, UserSkillProfileSerializer
+from .services import build_placement_session, build_training_session, calculate_and_save_result, complete_training_session, get_category_progress, get_progress_overview, reset_skill_progress, submit_training_answer
+from rest_framework.exceptions import ValidationError
 
 
 # ───── بدء الجلسة ─────
@@ -163,17 +164,109 @@ class ProgressOverview(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        data = get_progress_overview(request.user)
+        data = get_progress_overview(request.user, request)
         return Response(data)
     
 class CategoryProgressView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, category_pk):
-        data = get_category_progress(request.user, category_pk)
+        data = get_category_progress(request.user, category_pk, request)
         if not data:
             return Response(
                 {'detail': 'Category not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
         return Response(data)
+    
+#_____________________________________Training______________________________________
+#___________________________________________________________________________________
+
+# ───── بدء جلسة تدريب ─────
+
+class StartTrainingSessionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, category_pk, subject_pk, skill_pk):
+        skill = Skill.objects.filter(
+            id=skill_pk, is_active=True,
+            subject_id=subject_pk, subject__category_id=category_pk
+        ).first()
+        if not skill:
+            return Response({'detail': 'المهارة غير موجودة'}, status=status.HTTP_404_NOT_FOUND)
+
+        mode = request.data.get('mode', 'manual')
+        if mode not in ('auto', 'manual'):
+            return Response({'detail': 'mode غير صحيح، استخدم auto أو manual'}, status=status.HTTP_400_BAD_REQUEST)
+
+        concept = None
+        if mode == 'manual':
+            concept_id = request.data.get('concept_id')
+            if not concept_id:
+                return Response({'detail': 'concept_id مطلوب في الوضع اليدوي'}, status=status.HTTP_400_BAD_REQUEST)
+            concept = Concept.objects.filter(id=concept_id, skill=skill, is_active=True).first()
+            if not concept:
+                return Response({'detail': 'المفهوم غير موجود'}, status=status.HTTP_404_NOT_FOUND)
+
+        session, error = build_training_session(request.user, skill, mode=mode, concept=concept)
+        if error:
+            return Response(error, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = TrainingSessionSerializer(session)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+# ───── إرسال إجابة سؤال واحد ─────
+
+class SubmitTrainingAnswerView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, session_id):
+        session = TrainingSession.objects.filter(
+            id=session_id, user=request.user, completed_at__isnull=True
+        ).first()
+        if not session:
+            return Response({'detail': 'الجلسة غير موجودة أو منتهية'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = TrainingAnswerInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = submit_training_answer(
+                session,
+                serializer.validated_data['question_id'],
+                serializer.validated_data['user_answer'],
+            )
+        except ValidationError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(result, status=status.HTTP_200_OK)
+
+
+# ───── إنهاء الجلسة ─────
+
+class CompleteTrainingSessionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, session_id):
+        session = TrainingSession.objects.filter(
+            id=session_id, user=request.user, completed_at__isnull=True
+        ).first()
+        if not session:
+            return Response({'detail': 'الجلسة غير موجودة أو منتهية بالفعل'}, status=status.HTTP_404_NOT_FOUND)
+
+        result = complete_training_session(session)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+# ───── سجل جلسات التدريب ─────
+
+class TrainingSessionHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TrainingSessionHistorySerializer
+
+    def get_queryset(self):
+        return TrainingSession.objects.filter(
+            user=self.request.user, completed_at__isnull=False
+        ).order_by('-started_at')

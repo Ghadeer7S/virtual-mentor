@@ -2,10 +2,14 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .views import (
     CategoryProgressView,
+    CompleteTrainingSessionView,
     ResetSkillProgressView,
     StartPlacementSessionView,
+    StartTrainingSessionView,
     SubmitPlacementSessionView,
     PlacementSessionHistoryViewSet,
+    SubmitTrainingAnswerView,
+    TrainingSessionHistoryViewSet,
     UserConceptProfileViewSet,
     UserSkillProfileViewSet,
     ProgressOverview
@@ -15,6 +19,9 @@ router = DefaultRouter()
 router.register('placement-history', PlacementSessionHistoryViewSet, basename='placement-history')
 router.register('skill-profiles', UserSkillProfileViewSet, basename='skill-profiles')
 router.register('concept-profiles', UserConceptProfileViewSet, basename='concept-profiles')
+
+router.register('training-history', TrainingSessionHistoryViewSet, basename='training-history')
+
 
 urlpatterns = router.urls + [
     path(
@@ -50,5 +57,15 @@ urlpatterns = router.urls + [
         UserConceptProfileViewSet.as_view({'get': 'list'}),
         name='concept-profiles-by-skill'
     ),
+
+    path(
+        'categories/<int:category_pk>/subjects/<int:subject_pk>/skills/<int:skill_pk>/start-training/',
+        StartTrainingSessionView.as_view(),
+        name='training-start'
+    ),
+
+    path('training/<int:session_id>/answer/', SubmitTrainingAnswerView.as_view(), name='training-answer'),
+    
+    path('training/<int:session_id>/complete/', CompleteTrainingSessionView.as_view(), name='training-complete'),
 
 ]

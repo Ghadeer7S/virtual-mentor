@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from content.models import Skill, Concept, PlacementQuestion
+from content.models import Skill, Concept, PlacementQuestion, TrainingQuestion
 
 
 class UserSkillProfile(models.Model):
@@ -106,6 +106,74 @@ class PlacementQuestionHistory(models.Model):
 
     user          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='placement_question_histories')
     question      = models.ForeignKey(PlacementQuestion, on_delete=models.CASCADE, related_name='user_histories')
+    times_seen    = models.PositiveIntegerField(default=0)
+    times_correct = models.PositiveIntegerField(default=0)
+    last_result   = models.CharField(max_length=10, choices=RESULT_CHOICES, blank=True)
+
+    class Meta:
+        unique_together = ['user', 'question']
+
+    def __str__(self):
+        return f"{self.user.email} | Q{self.question.id} | seen {self.times_seen}"
+    
+
+# ───── Training Session ──────────────────────────────────────────────────────
+ 
+class TrainingSession(models.Model):
+    MODE_CHOICES = [
+        ('auto',   'Auto'),
+        ('manual', 'Manual'),
+    ]
+ 
+    user         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='training_sessions')
+    skill        = models.ForeignKey(Skill, on_delete=models.CASCADE, related_name='training_sessions')
+    concept      = models.ForeignKey(Concept, on_delete=models.CASCADE, related_name='training_sessions')
+    mode         = models.CharField(max_length=20, choices=MODE_CHOICES, default='manual')
+    xp_earned       = models.PositiveIntegerField(default=0) 
+    started_at   = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    result       = models.JSONField(null=True, blank=True)
+ 
+    class Meta:
+        ordering = ['-started_at']
+ 
+    def __str__(self):
+        return f"{self.user.email} | {self.concept.name} | {self.mode}"
+ 
+ 
+class TrainingSessionQuestion(models.Model):
+    session  = models.ForeignKey(TrainingSession, on_delete=models.CASCADE, related_name='session_questions')
+    question = models.ForeignKey(TrainingQuestion, on_delete=models.CASCADE, related_name='session_questions')
+    order    = models.PositiveIntegerField(default=0)
+ 
+    class Meta:
+        ordering        = ['order']
+        unique_together = ['session', 'question']
+ 
+    def __str__(self):
+        return f"TrainingSession {self.session.id} | Q{self.order}"
+ 
+ 
+class TrainingAnswer(models.Model):
+    session     = models.ForeignKey(TrainingSession, on_delete=models.CASCADE, related_name='answers')
+    question    = models.ForeignKey(TrainingQuestion, on_delete=models.CASCADE, related_name='answers')
+    user_answer = models.TextField()
+    is_correct  = models.BooleanField(default=False)
+ 
+    class Meta:
+        unique_together = ['session', 'question']
+ 
+    def __str__(self):
+        return f"TrainingSession {self.session.id} | {'✓' if self.is_correct else '✗'}"
+ 
+class TrainingQuestionHistory(models.Model):
+    RESULT_CHOICES = [
+        ('correct', 'Correct'),
+        ('wrong',   'Wrong'),
+    ]
+
+    user          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='training_question_histories')
+    question      = models.ForeignKey(TrainingQuestion, on_delete=models.CASCADE, related_name='user_histories')
     times_seen    = models.PositiveIntegerField(default=0)
     times_correct = models.PositiveIntegerField(default=0)
     last_result   = models.CharField(max_length=10, choices=RESULT_CHOICES, blank=True)
