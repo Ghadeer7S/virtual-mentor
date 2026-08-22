@@ -66,6 +66,7 @@ class PlacementQuestion(models.Model):
     skill = models.ForeignKey(
         Skill, on_delete=models.CASCADE, related_name='placement_questions'
     )
+    image = models.ImageField(upload_to='questions/placement/', blank=True, null=True)
     question = models.TextField()
     question_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     order = models.PositiveIntegerField(default=0)
@@ -135,6 +136,7 @@ class TrainingQuestion(models.Model):
         on_delete=models.CASCADE,
         related_name='training_questions'
     )
+    image = models.ImageField(upload_to='questions/training/', blank=True, null=True)
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='beginner')
     question_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     question = models.TextField()

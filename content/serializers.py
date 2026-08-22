@@ -16,7 +16,7 @@ class PlacementQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlacementQuestion
         fields = [
-            'id', 'question', 'question_type', 'level',
+            'id', 'image', 'question', 'question_type', 'level',
             'concept', 'concept_name', 'options', 'correct_answer'
         ]
 
@@ -30,7 +30,7 @@ class PlacementQuestionStudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlacementQuestion
         fields = [
-            'id', 'question', 'question_type',
+            'id', 'image', 'question', 'question_type',
             'level', 'concept_name', 'options'
         ]
 
@@ -48,7 +48,7 @@ class TrainingQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrainingQuestion
         fields = [
-            'id', 'level', 'question_type', 'question',
+            'id', 'image', 'level', 'question_type', 'question',
             'options', 'correct_answer', 'explanation',
             'hint'
         ]
