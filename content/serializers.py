@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
                         Category, Subject, Skill,PlacementQuestion,
-                        Concept, TrainingQuestion
+                        Concept, TrainingQuestion, Channel, ChannelMessage
                     )
 
 
@@ -153,3 +153,44 @@ class CategoryStudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'description', 'icon']
+
+
+
+# ─── Channel ──────────────────────────────────────────────────────────────
+
+class ChannelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Channel
+        fields = [
+            'id', 'name', 'description',
+            'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class ChannelStudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Channel
+        fields = ['id', 'name', 'description', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class ChannelMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChannelMessage
+        fields = [
+            'id', 'message_type', 'text_content',
+            'file', 'is_section', 'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class ChannelMessageStudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChannelMessage
+        fields = [
+            'id', 'message_type', 'text_content',
+            'file', 'is_section', 'created_at', 'updated_at'
+        ]
+
+        read_only_fields = ['created_at', 'updated_at']

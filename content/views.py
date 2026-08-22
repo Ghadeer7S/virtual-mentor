@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Category, Subject, Skill, PlacementQuestion, Concept, TrainingQuestion
+from .models import Category, Subject, Skill, PlacementQuestion, Concept, TrainingQuestion, Channel, ChannelMessage
 from .permissions import IsAdminOrEditor, IsAdminOrEditorOrReadOnly
 from .serializers import (
     CategorySerializer, CategoryStudentSerializer, ConceptPlacementQuestionSerializer,
@@ -10,7 +10,9 @@ from .serializers import (
     SkillSerializer, SkillStudentSerializer,
     PlacementQuestionSerializer,
     ConceptSerializer, ConceptStudentSerializer,
-    TrainingQuestionSerializer
+    TrainingQuestionSerializer,
+    ChannelSerializer, ChannelStudentSerializer,
+    ChannelMessageSerializer, ChannelMessageStudentSerializer,
 )
 from accounts.pagination import DynamicPagination
 # from rest_framework.filters import SearchFilter
@@ -293,3 +295,77 @@ class TrainingQuestionViewSet(viewsets.ModelViewSet):
             serializer.data,
             status=status.HTTP_201_CREATED
         )
+
+
+
+# ─── Channel ──────────────────────────────────────────────────────────────────
+
+class ChannelViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminOrEditorOrReadOnly]
+
+    def get_queryset(self):
+        category_id = self.kwargs.get('category_pk')
+        subject_id = self.kwargs.get('subject_pk')
+        skill_id = self.kwargs.get('skill_pk')
+
+        qs = Channel.objects.select_related(
+            'skill',
+            'skill__subject',
+            'skill__subject__category'
+        ).filter(
+            skill_id=skill_id,
+            skill__subject_id=subject_id,
+            skill__subject__category_id=category_id
+        )
+
+        if not is_editor_or_admin(self.request.user):
+            qs = qs.filter(is_active=True)
+
+        return qs
+
+    def get_serializer_class(self):
+        if is_editor_or_admin(self.request.user):
+            return ChannelSerializer
+        return ChannelStudentSerializer
+
+    def perform_create(self, serializer):
+        skill_id = self.kwargs.get('skill_pk')
+        serializer.save(skill_id=skill_id)
+
+
+# ─── ChannelMessage ─────────────────────────────────────────────────────────
+
+class ChannelMessageViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminOrEditorOrReadOnly]
+
+    def get_queryset(self):
+        category_id = self.kwargs.get('category_pk')
+        subject_id = self.kwargs.get('subject_pk')
+        skill_id = self.kwargs.get('skill_pk')
+        channel_id = self.kwargs.get('channel_pk')
+
+        qs = ChannelMessage.objects.select_related(
+            'channel',
+            'channel__skill',
+            'channel__skill__subject',
+            'channel__skill__subject__category'
+        ).filter(
+            channel_id=channel_id,
+            channel__skill_id=skill_id,
+            channel__skill__subject_id=subject_id,
+            channel__skill__subject__category_id=category_id
+        )
+
+        if not is_editor_or_admin(self.request.user):
+            qs = qs.filter(is_active=True)
+
+        return qs
+
+    def get_serializer_class(self):
+        if is_editor_or_admin(self.request.user):
+            return ChannelMessageSerializer
+        return ChannelMessageStudentSerializer
+
+    def perform_create(self, serializer):
+        channel_id = self.kwargs.get('channel_pk')
+        serializer.save(channel_id=channel_id)

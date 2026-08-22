@@ -156,3 +156,37 @@ class TrainingQuestion(models.Model):
 
     def __str__(self):
         return f"{self.concept.name} | {self.question_type}"
+
+
+
+class Channel(models.Model):
+    skill = models.ForeignKey(
+        Skill, on_delete=models.CASCADE, related_name='channels'
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class ChannelMessage(models.Model):
+    TYPE_CHOICES = [
+        ('text', 'Text'),
+        ('audio', 'Audio'),
+        ('image', 'Image'),
+    ]
+
+    channel = models.ForeignKey(
+        Channel, on_delete=models.CASCADE, related_name='messages'
+    )
+    message_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    text_content = models.TextField(blank=True)
+    file = models.FileField(upload_to='channels/messages/', blank=True, null=True)
+    is_section = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at']

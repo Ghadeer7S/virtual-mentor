@@ -7,6 +7,8 @@ from .views import (
     PlacementQuestionViewSet,
     ConceptViewSet,
     TrainingQuestionViewSet,
+    ChannelViewSet,
+    ChannelMessageViewSet
 )
 
 # /api/categories/
@@ -57,6 +59,28 @@ skills_router.register(
     basename='skill-concepts'
 )
 
+# /api/categories/{category_pk}/subjects/{subject_pk}/skills/{skill_pk}/channels/
+skills_router.register(
+    r'channels',
+    ChannelViewSet,
+    basename='skill-channels'
+)
+
+
+# /api/categories/{category_pk}/subjects/{subject_pk}/skills/{skill_pk}/channels/{channel_pk}/messages/
+channels_router = routers.NestedDefaultRouter(
+skills_router,
+r'channels',
+lookup='channel'
+)
+
+channels_router.register(
+r'messages',
+ChannelMessageViewSet,
+basename='channel-messages'
+)
+
+
 # /api/categories/{category_pk}/subjects/{subject_pk}/skills/{skill_pk}/concepts/{concept_pk}/questions/
 concepts_router = routers.NestedDefaultRouter(
     skills_router,
@@ -82,4 +106,5 @@ urlpatterns = [
     path('', include(subjects_router.urls)),
     path('', include(skills_router.urls)),
     path('', include(concepts_router.urls)),
+    path('', include(channels_router.urls)),
 ]
