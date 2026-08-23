@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.db.models import Q, Count
 
 
 class Category(models.Model):
@@ -46,6 +47,18 @@ class Skill(models.Model):
     def __str__(self):
         return f"{self.subject.name} - {self.name}"
 
+class PlacementQuestionQuerySet(models.QuerySet):
+    def concept_level_counts(self, concepts):
+        return (
+            self.filter(concept__in=concepts, is_active=True)
+            .values('concept_id')
+            .annotate(
+                beginner_count=Count('id', filter=Q(level='beginner')),
+                intermediate_count=Count('id', filter=Q(level='intermediate')),
+                advanced_count=Count('id', filter=Q(level='advanced')),
+            )
+        )
+
 
 class PlacementQuestion(models.Model):
     """أسئلة الامتحان التجريبي لتحديد مستوى الطالب"""
@@ -84,6 +97,8 @@ class PlacementQuestion(models.Model):
     )
     correct_answer = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = PlacementQuestionQuerySet.as_manager()
 
 
     def __str__(self):
