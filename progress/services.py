@@ -15,7 +15,8 @@ from .models import (
     TrainingAnswer,
     TrainingQuestionHistory,
 )
-from django.db.models import Subquery, OuterRef
+from collections import defaultdict
+from django.db.models import Subquery, OuterRef, F
 from content.models import Category, Subject, Skill, Concept, PlacementQuestion, TrainingQuestion
 
 # ───── بناء الجلسة ─────
@@ -36,24 +37,22 @@ def build_placement_session(user, skill):
 
     
     concepts = Concept.objects.filter(skill=skill, is_active=True)
+
+    concept_counts = PlacementQuestion.objects.concept_level_counts(concepts)
+    counts_map = {row['concept_id']: row for row in concept_counts}
+
     valid_concepts = []
-
     for concept in concepts:
-        qs = PlacementQuestion.objects.filter(
-            concept=concept,
-            is_active=True
-        )
-
-        beginner_count = qs.filter(level='beginner').count()
-        intermediate_count = qs.filter(level='intermediate').count()
-        advanced_count = qs.filter(level='advanced').count()
-
+        row = counts_map.get(concept.id)
+        if not row:
+            continue
         if (
-            beginner_count >= 2 and
-            intermediate_count >= 2 and
-            advanced_count >= 2
+            row['beginner_count'] >= 2 and
+            row['intermediate_count'] >= 2 and
+            row['advanced_count'] >= 2
         ):
             valid_concepts.append(concept)
+
     #----------------
     if len(valid_concepts) < 3:
         return None, {
@@ -66,13 +65,16 @@ def build_placement_session(user, skill):
         'not_started': 3,
         'strong': 4,
     }
+    profiles = UserConceptProfile.objects.filter(
+        user=user,
+        concept__in=valid_concepts
+    )
+    profiles_map = {p.concept_id: p for p in profiles}
+
     ordered_concepts = []
     for concept in valid_concepts:
 
-        profile = UserConceptProfile.objects.filter(
-            user=user,
-            concept=concept
-        ).first()
+        profile = profiles_map.get(concept.id)
 
         status = profile.status if profile else 'not_started'
 
@@ -84,6 +86,8 @@ def build_placement_session(user, skill):
             'times_trained': times_trained,
             'order': getattr(concept, 'order', concept.id),
         })
+
+
     ordered_concepts.sort(
     key=lambda item: (
         item['priority'],
@@ -91,6 +95,7 @@ def build_placement_session(user, skill):
         item['order'],
         )
     )
+    
     selected_concepts = [
         item['concept']
         for item in ordered_concepts[:3]
@@ -98,34 +103,41 @@ def build_placement_session(user, skill):
 
 
     # اختيار الأسئلة
-    questions = []
+
     PLAN = {
         'beginner': 2,
         'intermediate': 2,
         'advanced': 2,
     }
 
-    for concept in selected_concepts:
-
-        qs = PlacementQuestion.objects.filter(
-            concept=concept,
-            is_active=True
+    candidates = (
+        PlacementQuestion.objects.filter(
+            concept__in=selected_concepts,
+            is_active=True,
         )
-
-        for level, count in PLAN.items():
-
-            level_qs = qs.filter(level=level)
-
-            level_qs = level_qs.order_by(
-                Subquery(
-                    PlacementQuestionHistory.objects.filter(
-                        user=user,
-                        question=OuterRef('pk')
-                    ).values('times_seen')[:1]
-                ).asc(nulls_first=True)
+        .annotate(
+            times_seen=Subquery(
+                PlacementQuestionHistory.objects.filter(
+                    user=user,
+                    question=OuterRef('pk')
+                ).values('times_seen')[:1]
             )
+        )
+        .order_by(
+            'concept_id',
+            'level',
+            F('times_seen').asc(nulls_first=True),
+        )
+    )
 
-            selected_questions = list(level_qs[:count])
+    grouped = defaultdict(list)
+    for q in candidates:
+        grouped[(q.concept_id, q.level)].append(q)
+
+    questions = []
+    for concept in selected_concepts:
+        for level, count in PLAN.items():
+            selected_questions = grouped.get((concept.id, level), [])[:count]
 
             if len(selected_questions) < count:
                 return None, {
@@ -147,12 +159,10 @@ def build_placement_session(user, skill):
         skill=skill
     )
 
-    for idx, q in enumerate(questions):
-        PlacementSessionQuestion.objects.create(
-            session=session,
-            question=q,
-            order=idx,
-        )
+    PlacementSessionQuestion.objects.bulk_create([
+        PlacementSessionQuestion(session=session, question=q, order=idx)
+        for idx, q in enumerate(questions)
+    ])
 
     return session, None
 

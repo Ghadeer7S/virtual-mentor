@@ -3,11 +3,11 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from content.models import Concept, Skill
-from .models import PlacementSession, TrainingSession, UserConceptProfile, UserSkillProfile
+from .models import PlacementSession, PlacementSessionQuestion, TrainingSession, UserConceptProfile, UserSkillProfile
 from .serializers import PlacementSessionHistorySerializer, PlacementSessionSerializer, PlacementSubmitSerializer, SkillNotStartedSerializer, TrainingAnswerInputSerializer, TrainingSessionHistorySerializer, TrainingSessionSerializer, UserConceptProfileSerializer, UserSkillProfileSerializer
 from .services import build_placement_session, build_training_session, calculate_and_save_result, complete_training_session, get_category_progress, get_progress_overview, reset_skill_progress, submit_training_answer
 from rest_framework.exceptions import ValidationError
-
+from django.db.models import Prefetch
 
 # ───── بدء الجلسة ─────
 
@@ -32,6 +32,17 @@ class StartPlacementSessionView(APIView):
 
         if error:
             return Response(error, status=status.HTTP_400_BAD_REQUEST)
+
+        session = PlacementSession.objects.select_related(
+            'skill'
+        ).prefetch_related(
+            Prefetch(
+                'session_questions',
+                queryset=PlacementSessionQuestion.objects.select_related(
+                    'question__concept'
+                ).order_by('order')
+            )
+        ).get(pk=session.pk)
 
         serializer = PlacementSessionSerializer(session)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
