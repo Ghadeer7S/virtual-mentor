@@ -25,4 +25,6 @@ def send_reset_otp(user):
     )
     user.refresh_from_db()
     first_name = user.profile.first_name or user.email
-    send_reset_email.delay(user.email, first_name, code)
+    transaction.on_commit(
+        lambda: send_reset_email.delay(user.email, first_name, code)
+    )
