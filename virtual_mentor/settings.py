@@ -146,7 +146,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ar'
 
 TIME_ZONE = 'UTC'
 
@@ -178,7 +178,8 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
 
         'rest_framework.filters.OrderingFilter',
-    ]
+    ],
+    'EXCEPTION_HANDLER': 'virtual_mentor.exception_handler.custom_exception_handler',
 }
 
 SIMPLE_JWT = {
@@ -195,7 +196,8 @@ DJOSER = {
     'SERIALIZERS': {
         'user_create': 'accounts.serializers.UserCreateSerializer',
         'user': 'accounts.serializers.UserSerializer',
-        'current_user': 'accounts.serializers.UserSerializer'
+        'current_user': 'accounts.serializers.UserSerializer',
+        'user_delete': 'accounts.serializers.UserDeleteSerializer',
     },
     'PERMISSIONS': {
         'user_update': ['rest_framework.permissions.IsAdminUser'],
