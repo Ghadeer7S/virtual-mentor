@@ -1,18 +1,13 @@
 from django.db import models
 from django.conf import settings
 from content.models import Skill, Concept, PlacementQuestion, TrainingQuestion
+from .constants import LEVELS, CONCEPT_STATUSES, ANSWER_RESULTS
 
 
 class UserSkillProfile(models.Model):
-    LEVEL_CHOICES = [
-        ('beginner', 'Beginner'),
-        ('intermediate', 'Intermediate'),
-        ('advanced', 'Advanced'),
-    ]
-
     user              = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='skill_profiles')
     skill             = models.ForeignKey(Skill, on_delete=models.CASCADE, related_name='user_profiles')
-    current_level     = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='beginner')
+    current_level     = models.CharField(max_length=20, choices=LEVELS, default='beginner')
     assessment_score  = models.FloatField(default=0)
     is_mastered       = models.BooleanField(default=False)
     mastered_at       = models.DateTimeField(null=True, blank=True)
@@ -29,16 +24,9 @@ class UserSkillProfile(models.Model):
 
 
 class UserConceptProfile(models.Model):
-    STATUS_CHOICES = [
-        ('not_started', 'Not Started'),
-        ('weak', 'Weak'),
-        ('improving', 'Improving'),
-        ('strong', 'Strong'),
-    ]
-
     user         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='concept_profiles')
     concept      = models.ForeignKey(Concept, on_delete=models.CASCADE, related_name='user_profiles')
-    status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
+    status       = models.CharField(max_length=20, choices=CONCEPT_STATUSES, default='not_started')
     avg_score    = models.FloatField(default=0)
     times_trained = models.PositiveIntegerField(default=0)
     updated_at   = models.DateTimeField(auto_now=True)
@@ -51,16 +39,10 @@ class UserConceptProfile(models.Model):
 
 
 class PlacementSession(models.Model):
-    LEVEL_CHOICES = [
-        ('beginner', 'Beginner'),
-        ('intermediate', 'Intermediate'),
-        ('advanced', 'Advanced'),
-    ]
-
     user           = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='placement_sessions')
     skill          = models.ForeignKey(Skill, on_delete=models.CASCADE, related_name='placement_sessions')
-    score          = models.FloatField(null=True, blank=True)
-    level_result   = models.CharField(max_length=20, choices=LEVEL_CHOICES, null=True, blank=True)
+    score          = models.FloatField(default=0)
+    level_result   = models.CharField(max_length=20, choices=LEVELS, null=True, blank=True)
     started_at     = models.DateTimeField(auto_now_add=True)
     completed_at   = models.DateTimeField(null=True, blank=True)
     result = models.JSONField(null=True, blank=True)
@@ -99,16 +81,11 @@ class PlacementAnswer(models.Model):
 
 
 class PlacementQuestionHistory(models.Model):
-    RESULT_CHOICES = [
-        ('correct', 'Correct'),
-        ('wrong', 'Wrong'),
-    ]
-
     user          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='placement_question_histories')
     question      = models.ForeignKey(PlacementQuestion, on_delete=models.CASCADE, related_name='user_histories')
     times_seen    = models.PositiveIntegerField(default=0)
     times_correct = models.PositiveIntegerField(default=0)
-    last_result   = models.CharField(max_length=10, choices=RESULT_CHOICES, blank=True)
+    last_result   = models.CharField(max_length=10, choices=ANSWER_RESULTS, blank=True)
 
     class Meta:
         unique_together = ['user', 'question']
@@ -167,16 +144,11 @@ class TrainingAnswer(models.Model):
         return f"TrainingSession {self.session.id} | {'✓' if self.is_correct else '✗'}"
  
 class TrainingQuestionHistory(models.Model):
-    RESULT_CHOICES = [
-        ('correct', 'Correct'),
-        ('wrong',   'Wrong'),
-    ]
-
     user          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='training_question_histories')
     question      = models.ForeignKey(TrainingQuestion, on_delete=models.CASCADE, related_name='user_histories')
     times_seen    = models.PositiveIntegerField(default=0)
     times_correct = models.PositiveIntegerField(default=0)
-    last_result   = models.CharField(max_length=10, choices=RESULT_CHOICES, blank=True)
+    last_result   = models.CharField(max_length=10, choices=ANSWER_RESULTS, blank=True)
 
     class Meta:
         unique_together = ['user', 'question']

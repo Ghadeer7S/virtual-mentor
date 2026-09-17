@@ -6,8 +6,17 @@ from content.models import Concept, Skill
 from .models import PlacementSession, PlacementSessionQuestion, TrainingSession, UserConceptProfile, UserSkillProfile
 from .serializers import PlacementSessionHistorySerializer, PlacementSessionSerializer, PlacementSubmitSerializer, SkillNotStartedSerializer, TrainingAnswerInputSerializer, TrainingSessionHistorySerializer, TrainingSessionSerializer, UserConceptProfileSerializer, UserSkillProfileSerializer
 from .services import build_placement_session, build_training_session, calculate_and_save_result, complete_training_session, get_category_progress, get_progress_overview, reset_skill_progress, submit_training_answer
-from rest_framework.exceptions import ValidationError
 from django.db.models import Prefetch
+
+
+def resolve_active_skill(category_pk, subject_pk, skill_pk):
+    """Fetch the active skill identified by the nested URL path."""
+    return Skill.objects.filter(
+        id=skill_pk,
+        is_active=True,
+        subject_id=subject_pk,
+        subject__category_id=category_pk
+    ).first()
 
 # ───── بدء الجلسة ─────
 
@@ -15,12 +24,7 @@ class StartPlacementSessionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, category_pk, subject_pk, skill_pk):
-        skill = Skill.objects.filter(
-            id=skill_pk,
-            is_active=True,
-            subject_id=subject_pk,
-            subject__category_id=category_pk
-        ).first()
+        skill = resolve_active_skill(category_pk, subject_pk, skill_pk)
 
         if not skill:
             return Response(
@@ -67,8 +71,7 @@ class SubmitPlacementSessionView(APIView):
             )
 
         serializer = PlacementSubmitSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         result = calculate_and_save_result(
             session,
@@ -88,7 +91,7 @@ class PlacementSessionHistoryViewSet(viewsets.ReadOnlyModelViewSet):
         return PlacementSession.objects.filter(
             user=self.request.user,
             completed_at__isnull=False
-        ).order_by('-started_at')
+        ).select_related('skill').order_by('-started_at')
     
 #------------- reset المهارة ----------------------------
 
@@ -96,12 +99,7 @@ class ResetSkillProgressView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, category_pk, subject_pk, skill_pk):
-        skill = Skill.objects.filter(
-            id=skill_pk,
-            is_active=True,
-            subject_id=subject_pk,
-            subject__category_id=category_pk
-        ).first()
+        skill = resolve_active_skill(category_pk, subject_pk, skill_pk)
 
         if not skill:
             return Response(
@@ -199,10 +197,7 @@ class StartTrainingSessionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, category_pk, subject_pk, skill_pk):
-        skill = Skill.objects.filter(
-            id=skill_pk, is_active=True,
-            subject_id=subject_pk, subject__category_id=category_pk
-        ).first()
+        skill = resolve_active_skill(category_pk, subject_pk, skill_pk)
         if not skill:
             return Response({'detail': 'المهارة غير موجودة'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -240,17 +235,13 @@ class SubmitTrainingAnswerView(APIView):
             return Response({'detail': 'الجلسة غير موجودة أو منتهية'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = TrainingAnswerInputSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
-        try:
-            result = submit_training_answer(
-                session,
-                serializer.validated_data['question_id'],
-                serializer.validated_data['user_answer'],
-            )
-        except ValidationError as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        result = submit_training_answer(
+            session,
+            serializer.validated_data['question_id'],
+            serializer.validated_data['user_answer'],
+        )
 
         return Response(result, status=status.HTTP_200_OK)
 
@@ -280,4 +271,4 @@ class TrainingSessionHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return TrainingSession.objects.filter(
             user=self.request.user, completed_at__isnull=False
-        ).order_by('-started_at')
+        ).select_related('skill', 'concept').order_by('-started_at')

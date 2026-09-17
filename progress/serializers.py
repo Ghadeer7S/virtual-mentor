@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import PlacementSession, PlacementSessionQuestion, TrainingSession, TrainingSessionQuestion
+from .models import PlacementSession, PlacementSessionQuestion, TrainingSession, TrainingSessionQuestion, UserSkillProfile, UserConceptProfile
 from content.serializers import PlacementQuestionStudentSerializer, SkillStudentSerializer, ConceptStudentSerializer
 from content.models import TrainingQuestion
 
@@ -49,10 +49,6 @@ class PlacementSubmitSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError('At least one answer must be submitted')
         return value
-    
-#------------------------------------------------
-
-from .models import UserSkillProfile, UserConceptProfile
 
 
 class UserSkillProfileSerializer(serializers.ModelSerializer):
