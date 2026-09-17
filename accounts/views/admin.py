@@ -69,7 +69,7 @@ class DashboardUserViewSet(viewsets.ModelViewSet):
             admin_count = User.objects.filter(role='admin').count()
             if admin_count <= 1:
                 return Response(
-                    {'detail': 'Cannot delete the last admin account.'},
+                    {'detail': 'لا يمكن حذف حساب الادمن الاخير'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -100,7 +100,7 @@ class DashboardUserViewSet(viewsets.ModelViewSet):
                 admin_count = User.objects.filter(role='admin').count()
                 if admin_count <= 1:
                     return Response(
-                        {'detail': 'Cannot delete the last admin account.'},
+                        {'detail': 'لا يمكن حذف حساب الادمن الاخير'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
 

@@ -30,12 +30,12 @@ class UserCreateSerializer(serializers.ModelSerializer):
         value = value.lower().strip()
 
         if User.objects.filter(email=value, is_active=True).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
+            raise serializers.ValidationError("يوجد مستخدم بهذا البريد الإلكتروني بالفعل")
 
         if User.objects.filter(email=value, is_active=False).exclude(
             role=User.ROLE_STUDENT
         ).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
+            raise serializers.ValidationError("يوجد مستخدم بهذا البريد الإلكتروني بالفعل")
 
         return value
 
@@ -128,5 +128,8 @@ class ResetPasswordSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs['new_password'] != attrs['confirm_password']:
-            raise serializers.ValidationError({'confirm_password': 'Passwords do not match'})
+            raise serializers.ValidationError({'confirm_password': 'كلمتا المرور غير متطابقتين'})
         return attrs
+
+class UserDeleteSerializer(serializers.Serializer):
+    pass

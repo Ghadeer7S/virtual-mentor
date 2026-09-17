@@ -1,3 +1,5 @@
+import hmac
+
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.conf import settings
@@ -97,29 +99,15 @@ class Profile(models.Model):
     )
 
 
-class OTPVerification(models.Model):
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='otp_verification')
+
+
+class BaseOTP(models.Model):
     code = models.CharField(max_length=6)
-    created_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     attempts = models.PositiveSmallIntegerField(default=0)
 
-    def is_expired(self):
-        # الكود صالح لمدة 10 دقائق
-        return timezone.now() > self.created_at + timedelta(minutes=10)
-    
-    def is_on_cooldown(self):
-        return timezone.now() < self.created_at + timedelta(minutes=1)
-
-    def __str__(self):
-        return f"{self.user.email} - {self.code}"
-    
-class PasswordResetOTP(models.Model):
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='password_reset_otp')
-    code = models.CharField(max_length=6)
-    created_at = models.DateTimeField(auto_now=True)
-    attempts = models.PositiveSmallIntegerField(default=0)
+    class Meta:
+        abstract = True
 
     def is_expired(self):
         return timezone.now() > self.created_at + timedelta(minutes=10)
@@ -129,3 +117,19 @@ class PasswordResetOTP(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.code}"
+
+
+class OTPVerification(BaseOTP):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='otp_verification'
+    )
+
+
+class PasswordResetOTP(BaseOTP):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='password_reset_otp'
+    )

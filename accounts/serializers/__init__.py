@@ -5,6 +5,7 @@ from .auth import (
     ResendOTPSerializer,
     ForgotPasswordSerializer,
     ResetPasswordSerializer,
+    UserDeleteSerializer
 )
 
 from .profile import ProfileSerializer

@@ -26,7 +26,7 @@ class GoogleLoginView(APIView):
 
         if not id_token:
             return Response(
-                {'detail': 'id_token is required'},
+                {'detail': 'id_token مطلوب'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -34,7 +34,7 @@ class GoogleLoginView(APIView):
             decoded_token = firebase_auth.verify_id_token(id_token)
         except Exception:
             return Response(
-                {'detail': 'Invalid token'},
+                {'detail': 'token غير صالح'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -56,7 +56,7 @@ class GoogleLoginView(APIView):
 
         if not created and user.role != User.ROLE_STUDENT:
             return Response(
-                {'detail': 'Please use the standard login'},
+                {'detail': 'يرجى استخدام تسجيل الدخول العادي'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -94,8 +94,7 @@ class VerifyOTPView(GenericAPIView):
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data['email']
         code = serializer.validated_data['code']
@@ -104,7 +103,7 @@ class VerifyOTPView(GenericAPIView):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             return Response(
-                {'detail': 'Invalid email or code'},
+                {'detail': 'البريد الإلكتروني أو الرمز غير صحيح'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -112,25 +111,25 @@ class VerifyOTPView(GenericAPIView):
             otp = OTPVerification.objects.get(user=user)
         except OTPVerification.DoesNotExist:
             return Response(
-                {'detail': 'Invalid email or code'},
+                {'detail': 'البريد الإلكتروني أو الرمز غير صحيح'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         if otp.attempts >= 5:
             otp.delete()
             return Response(
-                {'detail': 'Too many attempts, please request a new code'},
+                {'detail': 'محاولات كثيرة جدًا، يرجى طلب رمز جديد'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         if otp.is_expired():
-            return Response({'detail': 'Code has expired'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'انتهت صلاحية الرمز'}, status=status.HTTP_400_BAD_REQUEST)
 
         if otp.code != code:
             otp.attempts += 1
             otp.save()
             return Response(
-                {'detail': 'Invalid email or code'},
+                {'detail': 'البريد الإلكتروني أو الرمز غير صحيح'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -138,7 +137,7 @@ class VerifyOTPView(GenericAPIView):
         user.save()
         otp.delete()
 
-        return Response({'detail': 'Account activated successfully'})
+        return Response({'detail': 'تم تفعيل الحساب بنجاح'})
 
 @method_decorator(ratelimit(key='ip', rate='3/m', method='POST', block=True), name='post')
 class ResendOTPView(GenericAPIView):
@@ -147,8 +146,7 @@ class ResendOTPView(GenericAPIView):
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data['email']
 
@@ -156,13 +154,13 @@ class ResendOTPView(GenericAPIView):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             return Response(
-                {'detail': 'If this email exists, a new code has been sent'},
+                {'detail': 'إذا كان هذا البريد الإلكتروني مسجلًا، فقد تم إرسال رمز جديد'},
                 status=status.HTTP_200_OK
             )
 
         if user.is_active:
             return Response(
-                {'detail': 'Account is already activated'},
+                {'detail': 'الحساب مفعّل بالفعل'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -170,14 +168,14 @@ class ResendOTPView(GenericAPIView):
             otp = OTPVerification.objects.get(user=user)
             if otp.is_on_cooldown():
                 return Response(
-                    {'detail': 'Please wait 2 minutes before requesting a new code'},
+                    {'detail': 'يرجى الانتظار دقيقتين قبل طلب رمز جديد'},
                     status=status.HTTP_429_TOO_MANY_REQUESTS
                 )
         except OTPVerification.DoesNotExist:
             pass
 
         send_otp(user)
-        return Response({'detail': 'If this email exists, a new code has been sent'})    
+        return Response({'detail': 'إذا كان هذا البريد الإلكتروني مسجلًا، فقد تم إرسال رمز جديد'})    
 
 # ---------------------------Reset-Password--------------------------------------------------------------------------
 
@@ -188,8 +186,7 @@ class ForgotPasswordView(GenericAPIView):
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data['email']
 
@@ -197,7 +194,7 @@ class ForgotPasswordView(GenericAPIView):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             return Response(
-                {'detail': 'If this email exists, a reset code has been sent'},
+                {'detail': 'إذا كان هذا البريد الإلكتروني مسجلًا، فقد تم إرسال رمز لإعادة التعيين'},
                 status=status.HTTP_200_OK
             )
         
@@ -212,7 +209,7 @@ class ForgotPasswordView(GenericAPIView):
             pass
 
         send_reset_otp(user)
-        return Response({'detail': 'If this email exists, a reset code has been sent'})
+        return Response({'detail': 'إذا كان هذا البريد الإلكتروني مسجلًا، فقد تم إرسال رمز لإعادة التعيين'})
 
 
 @method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True), name='post')
@@ -222,8 +219,7 @@ class ResetPasswordView(GenericAPIView):
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data['email']
         code = serializer.validated_data['code']
@@ -241,20 +237,20 @@ class ResetPasswordView(GenericAPIView):
             otp = PasswordResetOTP.objects.get(user=user)
         except PasswordResetOTP.DoesNotExist:
             return Response(
-                {'detail': 'Invalid email or code'},
+                {'detail': 'البريد الإلكتروني أو الرمز غير صحيح'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         if otp.attempts >= 5:
             otp.delete()
             return Response(
-                {'detail': 'Too many attempts, please request a new code'},
+                {'detail': 'محاولات كثيرة جدًا، يرجى طلب رمز جديد'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         if otp.is_expired():
             return Response(
-                {'detail': 'Code has expired'},
+                {'detail': 'انتهت صلاحية الرمز'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -262,7 +258,7 @@ class ResetPasswordView(GenericAPIView):
             otp.attempts += 1
             otp.save()
             return Response(
-                {'detail': 'Invalid email or code'},
+                {'detail': 'البريد الإلكتروني أو الرمز غير صحيح'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -270,4 +266,4 @@ class ResetPasswordView(GenericAPIView):
         user.save()
         otp.delete()
 
-        return Response({'detail': 'Password reset successfully'})
+        return Response({'detail': 'تمت إعادة تعيين كلمة المرور بنجاح'})

@@ -8,7 +8,7 @@ def send_otp(user):
     code = str(random.randint(100000, 999999))
     OTPVerification.objects.update_or_create(
         user=user,
-        defaults={'code': code}
+        defaults={'code': code, 'attempts': 0}
     )
     user.refresh_from_db()
     first_name = user.profile.first_name or user.email
@@ -21,7 +21,7 @@ def send_reset_otp(user):
     code = str(random.randint(100000, 999999))
     PasswordResetOTP.objects.update_or_create(
         user=user,
-        defaults={'code': code}
+        defaults={'code': code, 'attempts': 0}
     )
     user.refresh_from_db()
     first_name = user.profile.first_name or user.email
