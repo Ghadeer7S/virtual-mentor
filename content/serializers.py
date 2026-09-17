@@ -38,7 +38,7 @@ class ConceptPlacementQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlacementQuestion
         fields = [
-            'id', 'question', 'question_type', 'level', 'options',
+            'id', 'image', 'question', 'question_type', 'level', 'options',
             'correct_answer'
         ]
 
@@ -85,22 +85,63 @@ class ConceptStudentSerializer(serializers.ModelSerializer):
 class SkillSerializer(serializers.ModelSerializer):
     # placement_questions = PlacementQuestionSerializer(many=True, read_only=True)
     # lessons = LessonSerializer(many=True, read_only=True)
-    created_by_email = serializers.CharField(
-        source='created_by.email', read_only=True
-    )
 
     class Meta:
         model = Skill
         fields = [
             'id', 'subject', 'name', 'description',
             'is_active', 'created_at',
-            'created_by_email'
+            'placement_num_concepts', 'placement_total_questions', 'training_beginner_count',
+            'training_intermediate_count', 'training_advanced_count',
         ]
-        read_only_fields = ['subject', 'created_at', 'created_by_email']
+        read_only_fields = ['subject', 'created_at']
 
-    def create(self, validated_data):
-        validated_data['created_by'] = self.context['request'].user
-        return super().create(validated_data)
+    def validate(self, data):
+        num_concepts = data.get(
+            'placement_num_concepts',
+            getattr(self.instance, 'placement_num_concepts', None)
+        )
+        total_questions = data.get(
+            'placement_total_questions',
+            getattr(self.instance, 'placement_total_questions', None)
+        )
+
+        if num_concepts is not None and total_questions is not None:
+            if num_concepts < 1:
+                raise serializers.ValidationError(
+                    'عدد المفاهيم لا يجب ان يقل عن 1'
+                )
+            if total_questions < 1:
+                raise serializers.ValidationError(
+                    'عدد الاسئلة لا يجب ان يكون 0'
+                )
+
+            divisor = num_concepts * 3    
+            if total_questions % divisor != 0:
+                raise serializers.ValidationError(
+                    f'عدد الأسئلة يجب أن يكون من مضاعفات {divisor}'
+                )
+            
+        beginner = data.get(
+            'training_beginner_count',
+            getattr(self.instance, 'training_beginner_count', None)
+        )
+        intermediate = data.get(
+            'training_intermediate_count',
+            getattr(self.instance, 'training_intermediate_count', None)
+        )
+        advanced = data.get(
+            'training_advanced_count',
+            getattr(self.instance, 'training_advanced_count', None)
+        )
+
+        total_training = (beginner or 0) + (intermediate or 0) + (advanced or 0)
+        if total_training < 1:
+            raise serializers.ValidationError(
+                'يجب أن يحتوي التدريب على سؤال واحد على الأقل'
+            )
+
+        return data
 
 
 class SkillStudentSerializer(serializers.ModelSerializer):

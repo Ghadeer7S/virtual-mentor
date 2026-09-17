@@ -37,12 +37,11 @@ class Skill(models.Model):
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='created_skills'
-    )
+    placement_num_concepts = models.PositiveIntegerField(default=3)
+    placement_total_questions = models.PositiveIntegerField(default=18)
+    training_beginner_count = models.PositiveIntegerField(default=3)
+    training_intermediate_count = models.PositiveIntegerField(default=4)
+    training_advanced_count = models.PositiveIntegerField(default=3)
 
     def __str__(self):
         return f"{self.subject.name} - {self.name}"
@@ -91,6 +90,7 @@ class PlacementQuestion(models.Model):
         related_name='placement_questions'
     )
     options = models.JSONField(
+        null=True,
         default=list,
         blank=True,
         help_text='For multiple_choice: ["option1", "option2", ...]'
@@ -157,7 +157,7 @@ class TrainingQuestion(models.Model):
     question = models.TextField()
     options = models.JSONField(
         default=list,
-        blank=True,
+        blank=True, null=True,
         help_text='للـ multiple_choice: ["خيار1", "خيار2", ...]'
     )
     correct_answer = models.TextField()
