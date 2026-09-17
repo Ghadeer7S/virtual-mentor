@@ -13,4 +13,12 @@ app.conf.beat_schedule = {
         'task': 'accounts.tasks.delete_unactivated_users',
         'schedule': crontab(minute=0, hour='*/1'),
     },
+    'cleanup-stale-sessions-every-hour': {
+        'task': 'progress.tasks.cleanup_stale_training_sessions',
+        'schedule': crontab(minute=0, hour='*/1'),
+    },
+    'cleanup-stale-placement-sessions-every-hour': {
+        'task': 'progress.tasks.cleanup_stale_placement_sessions',
+        'schedule': crontab(minute=0, hour='*/1'),
+    },
 }
