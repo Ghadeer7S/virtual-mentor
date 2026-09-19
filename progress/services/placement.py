@@ -57,7 +57,7 @@ def build_placement_session(user, skill):
         remaining = profile.can_reassess_at - timezone.now()
         hours = int(remaining.total_seconds() // 3600)
         return None, {
-            'detail': f'يجب الانتظار {hours} ساعة قبل إعادة التقييم',
+            'detail': f'Please wait {hours} hours before reassessment',
             'can_reassess_at': profile.can_reassess_at,
         }
 
@@ -85,7 +85,7 @@ def build_placement_session(user, skill):
             valid_concepts.append(concept)
 
     if len(valid_concepts) < num_concepts:
-        return None, {'detail': 'لا توجد مفاهيم كافية مكتملة لبدء التقييم'}
+        return None, {'detail': 'Not enough complete concepts to start the assessment'}
 
     selected_concepts = least_known_concepts(user, valid_concepts)[:num_concepts]
 
@@ -118,7 +118,7 @@ def build_placement_session(user, skill):
         for level in LEVEL_VALUES:
             level_questions = grouped.get((concept.id, level), [])
             if len(level_questions) < per_level:
-                return None, {'detail': 'عدد الأسئلة المتوفرة غير كافٍ'}
+                return None, {'detail': 'Not enough available questions'}
             questions_by_level[level].extend(level_questions[:per_level])
 
     questions = []
@@ -127,7 +127,7 @@ def build_placement_session(user, skill):
         questions.extend(questions_by_level[level])
 
     if not questions:
-        return None, {'detail': 'لا توجد أسئلة متاحة'}
+        return None, {'detail': 'No questions available'}
 
     with transaction.atomic():
         session = PlacementSession.objects.create(user=user, skill=skill)
@@ -154,7 +154,7 @@ def calculate_and_save_result(session, answers_data):
 
     for item in answers_data:
         if item['question_id'] not in session_qids:
-            raise ValidationError(f"السؤال رقم {item['question_id']} لا ينتمي لهذه الجلسة")
+            raise ValidationError(f"Question {item['question_id']} does not belong to this session")
 
     answered = {item['question_id']: item['user_answer'] for item in answers_data}
     answered.update({qid: '' for qid in session_qids if qid not in answered})
@@ -166,7 +166,7 @@ def calculate_and_save_result(session, answers_data):
             .first()
         )
         if locked is None:
-            raise ValidationError('الجلسة غير موجودة أو منتهية')
+            raise ValidationError('Session not found or expired')
 
         _persist_answers_and_history(session, answered, questions_by_id)
         score, level, xp_earned, by_diff, concept_stats = _grade(answered, questions_by_id)

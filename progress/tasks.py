@@ -17,7 +17,7 @@ def cleanup_stale_training_sessions():
     count = stale_sessions.count()
     stale_sessions.delete()
 
-    return f'تم حذف {count} جلسة تدريب معلّقة'
+    return f'Deleted {count} pending training sessions'
 
 
 @shared_task
@@ -32,4 +32,4 @@ def cleanup_stale_placement_sessions():
     count = stale_sessions.count()
     stale_sessions.delete()
 
-    return f'تم حذف {count} جلسة تقييم معلّقة'
+    return f'Deleted {count} pending placement sessions'

@@ -18,7 +18,7 @@ def resolve_active_skill(category_pk, subject_pk, skill_pk):
         subject__category_id=category_pk
     ).first()
 
-# ───── بدء الجلسة ─────
+# ───── Start placement session ─────
 
 class StartPlacementSessionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -28,7 +28,7 @@ class StartPlacementSessionView(APIView):
 
         if not skill:
             return Response(
-                {'detail': 'المهارة غير موجودة'},
+                {'detail': 'Skill not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -52,7 +52,7 @@ class StartPlacementSessionView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# ───── إرسال الإجابات ─────
+# ───── Submit answers ─────
 
 class SubmitPlacementSessionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -66,7 +66,7 @@ class SubmitPlacementSessionView(APIView):
 
         if not session:
             return Response(
-                {'detail': 'الجلسة غير موجودة أو منتهية'},
+                {'detail': 'Session not found or expired'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -81,7 +81,7 @@ class SubmitPlacementSessionView(APIView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-#---------------- سجل الجلسات -------------------------
+#---------------- Session history -------------------------
 
 class PlacementSessionHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -93,7 +93,7 @@ class PlacementSessionHistoryViewSet(viewsets.ReadOnlyModelViewSet):
             completed_at__isnull=False
         ).select_related('skill').order_by('-started_at')
     
-#------------- reset المهارة ----------------------------
+#------------- Reset skill ----------------------------
 
 class ResetSkillProgressView(APIView):
     permission_classes = [IsAuthenticated]
@@ -103,7 +103,7 @@ class ResetSkillProgressView(APIView):
 
         if not skill:
             return Response(
-                {'detail': 'المهارة غير موجودة'},
+                {'detail': 'Skill not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -191,7 +191,7 @@ class CategoryProgressView(APIView):
 #_____________________________________Training______________________________________
 #___________________________________________________________________________________
 
-# ───── بدء جلسة تدريب ─────
+# ───── Start training session ─────
 
 class StartTrainingSessionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -199,20 +199,20 @@ class StartTrainingSessionView(APIView):
     def post(self, request, category_pk, subject_pk, skill_pk):
         skill = resolve_active_skill(category_pk, subject_pk, skill_pk)
         if not skill:
-            return Response({'detail': 'المهارة غير موجودة'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Skill not found'}, status=status.HTTP_404_NOT_FOUND)
 
         mode = request.data.get('mode', 'manual')
         if mode not in ('auto', 'manual'):
-            return Response({'detail': 'mode غير صحيح، استخدم auto أو manual'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Invalid mode, use auto or manual'}, status=status.HTTP_400_BAD_REQUEST)
 
         concept = None
         if mode == 'manual':
             concept_id = request.data.get('concept_id')
             if not concept_id:
-                return Response({'detail': 'concept_id مطلوب في الوضع اليدوي'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'concept_id is required in manual mode'}, status=status.HTTP_400_BAD_REQUEST)
             concept = Concept.objects.filter(id=concept_id, skill=skill, is_active=True).first()
             if not concept:
-                return Response({'detail': 'المفهوم غير موجود'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'detail': 'Concept not found'}, status=status.HTTP_404_NOT_FOUND)
 
         session, error = build_training_session(request.user, skill, mode=mode, concept=concept)
         if error:
@@ -222,7 +222,7 @@ class StartTrainingSessionView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# ───── إرسال إجابة سؤال واحد ─────
+# ───── Submit single question answer ─────
 
 class SubmitTrainingAnswerView(APIView):
     permission_classes = [IsAuthenticated]
@@ -232,7 +232,7 @@ class SubmitTrainingAnswerView(APIView):
             id=session_id, user=request.user, completed_at__isnull=True
         ).first()
         if not session:
-            return Response({'detail': 'الجلسة غير موجودة أو منتهية'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Session not found or expired'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = TrainingAnswerInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -246,7 +246,7 @@ class SubmitTrainingAnswerView(APIView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-# ───── إنهاء الجلسة ─────
+# ───── Finish session ─────
 
 class CompleteTrainingSessionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -256,13 +256,13 @@ class CompleteTrainingSessionView(APIView):
             id=session_id, user=request.user, completed_at__isnull=True
         ).first()
         if not session:
-            return Response({'detail': 'الجلسة غير موجودة أو منتهية بالفعل'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Session not found or already completed'}, status=status.HTTP_404_NOT_FOUND)
 
         result = complete_training_session(session)
         return Response(result, status=status.HTTP_200_OK)
 
 
-# ───── سجل جلسات التدريب ─────
+# ───── Training history ─────
 
 class TrainingSessionHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]

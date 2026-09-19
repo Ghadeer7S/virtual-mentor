@@ -60,7 +60,7 @@ class PlacementQuestionQuerySet(models.QuerySet):
 
 
 class PlacementQuestion(models.Model):
-    """أسئلة الامتحان التجريبي لتحديد مستوى الطالب"""
+    """Placement mock test questions to determine the student's level."""
 
     LEVEL_CHOICES = [
         ('beginner', 'Beginner'),
@@ -158,16 +158,16 @@ class TrainingQuestion(models.Model):
     options = models.JSONField(
         default=list,
         blank=True, null=True,
-        help_text='للـ multiple_choice: ["خيار1", "خيار2", ...]'
+        help_text='For multiple_choice: ["option1", "option2", ...]'
     )
     correct_answer = models.TextField()
     explanation = models.TextField(
-        help_text='يظهر للطالب بعد الإجابة دائماً'
+        help_text='Always shown to the student after answering'
     )
     hint = models.CharField(
         max_length=255,
         blank=True,
-        help_text='يظهر عند طلب الطالب تلميحاً'
+        help_text='Shown when the student requests a hint'
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

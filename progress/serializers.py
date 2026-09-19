@@ -4,7 +4,7 @@ from content.serializers import PlacementQuestionStudentSerializer, SkillStudent
 from content.models import TrainingQuestion
 
 
-# ───── عرض الجلسة للطالب ─────
+# ───── Display session to student ─────
 
 class PlacementSessionQuestionSerializer(serializers.ModelSerializer):
     question = PlacementQuestionStudentSerializer(read_only=True)
@@ -35,7 +35,7 @@ class PlacementSessionHistorySerializer(serializers.ModelSerializer):
             'started_at', 'completed_at', 'result'
         ]
 
-# ───── إرسال الإجابات ─────
+# ───── Submit answers ─────
 
 class PlacementAnswerInputSerializer(serializers.Serializer):
     question_id = serializers.IntegerField()

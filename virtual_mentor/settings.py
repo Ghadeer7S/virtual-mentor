@@ -146,7 +146,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'ar'
+LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
 
@@ -179,7 +179,6 @@ REST_FRAMEWORK = {
 
         'rest_framework.filters.OrderingFilter',
     ],
-    'EXCEPTION_HANDLER': 'virtual_mentor.exception_handler.custom_exception_handler',
 }
 
 SIMPLE_JWT = {

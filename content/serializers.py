@@ -109,17 +109,17 @@ class SkillSerializer(serializers.ModelSerializer):
         if num_concepts is not None and total_questions is not None:
             if num_concepts < 1:
                 raise serializers.ValidationError(
-                    'عدد المفاهيم لا يجب ان يقل عن 1'
+                    'Number of concepts must be at least 1'
                 )
             if total_questions < 1:
                 raise serializers.ValidationError(
-                    'عدد الاسئلة لا يجب ان يكون 0'
+                    'Number of questions must be at least 1'
                 )
 
             divisor = num_concepts * 3    
             if total_questions % divisor != 0:
                 raise serializers.ValidationError(
-                    f'عدد الأسئلة يجب أن يكون من مضاعفات {divisor}'
+                    f'Number of questions must be a multiple of {divisor}'
                 )
             
         beginner = data.get(
@@ -138,7 +138,7 @@ class SkillSerializer(serializers.ModelSerializer):
         total_training = (beginner or 0) + (intermediate or 0) + (advanced or 0)
         if total_training < 1:
             raise serializers.ValidationError(
-                'يجب أن يحتوي التدريب على سؤال واحد على الأقل'
+                'Training must contain at least one question'
             )
 
         return data

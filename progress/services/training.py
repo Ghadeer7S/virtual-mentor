@@ -72,13 +72,13 @@ def build_training_session(user, skill, mode='manual', concept=None):
     if mode == 'auto':
         concept = select_auto_training_concept(user, skill)
         if not concept:
-            return None, {'detail': 'لا يوجد مفهوم جاهز للتدريب حاليًا'}
+            return None, {'detail': 'No concept is ready for training right now'}
     else:
         if not concept:
-            return None, {'detail': 'يجب اختيار مفهوم في الوضع اليدوي'}
+            return None, {'detail': 'A concept must be selected in manual mode'}
         valid_ids = {c.id for c in get_valid_training_concepts(skill)}
         if concept.id not in valid_ids:
-            return None, {'detail': 'هذا المفهوم غير جاهز للتدريب بعد'}
+            return None, {'detail': 'This concept is not ready for training yet'}
 
     plan = get_training_plan(skill)
 
@@ -103,7 +103,7 @@ def build_training_session(user, skill, mode='manual', concept=None):
     for level, count in plan.items():
         selected = grouped.get(level, [])[:count]
         if len(selected) < count:
-            return None, {'detail': 'عدد الأسئلة المتوفرة غير كافٍ لهذا المفهوم'}
+            return None, {'detail': 'Not enough available questions for this concept'}
         questions.extend(selected)
 
     random.shuffle(questions)
@@ -127,7 +127,7 @@ def submit_training_answer(session, question_id, user_answer):
     ).select_related('question').first()
 
     if not session_question:
-        raise ValidationError('السؤال لا ينتمي لهذه الجلسة')
+        raise ValidationError('Question does not belong to this session')
 
     with transaction.atomic():
         locked = (
@@ -136,7 +136,7 @@ def submit_training_answer(session, question_id, user_answer):
             .first()
         )
         if locked is None:
-            raise ValidationError('الجلسة غير موجودة أو منتهية')
+            raise ValidationError('Session not found or expired')
 
         question = session_question.question
         is_correct = answers_match(
@@ -154,7 +154,7 @@ def submit_training_answer(session, question_id, user_answer):
             },
         )
         if not created:
-            raise ValidationError('تم الإجابة على هذا السؤال مسبقًا')
+            raise ValidationError('This question has already been answered')
 
         last_result = 'correct' if is_correct else 'wrong'
         updated = TrainingQuestionHistory.objects.filter(
