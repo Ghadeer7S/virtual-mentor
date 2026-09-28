@@ -7,13 +7,13 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     services:
       mysql:
-        # mirror.gcr.io mirrors Docker Hub without anonymous pull rate limits,
-        # which is what makes `mysql:8.0.46` fail with docker exit 125 here.
-        image: mirror.gcr.io/library/mysql:8.0.46
+        # -debian variant is a smaller base than the default (oraclelinux),
+        # which matters because the runner has limited free disk.
+        image: mirror.gcr.io/library/mysql:8.0.46-debian
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
@@ -34,6 +34,15 @@ jobs:
       DB_PORT: "3306"
 
     steps:
+      # Service containers start before any step, so this only frees disk for
+      # the pip install below, not for the mysql service itself.
+      - uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          dotnet: false
+          large-packages: false
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
