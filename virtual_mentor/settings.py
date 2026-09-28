@@ -217,8 +217,10 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 
 CSRF_TRUSTED_ORIGINS = ['https://danita-astrometric-avengingly.ngrok-free.dev']
 
-cred = credentials.Certificate(BASE_DIR / 'firebase_credentials.json')
-firebase_admin.initialize_app(cred)
+if (BASE_DIR / 'firebase_credentials.json').exists():
+    firebase_admin.initialize_app(
+        credentials.Certificate(BASE_DIR / 'firebase_credentials.json')
+    )
 
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
