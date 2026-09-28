@@ -11,7 +11,9 @@ jobs:
 
     services:
       mysql:
-        image: mysql:8.0.46
+        # mirror.gcr.io mirrors Docker Hub without anonymous pull rate limits,
+        # which is what makes `mysql:8.0.46` fail with docker exit 125 here.
+        image: mirror.gcr.io/library/mysql:8.0.46
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
