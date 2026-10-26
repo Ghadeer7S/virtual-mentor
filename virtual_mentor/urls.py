@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
-
+from virtual_mentor.views import health_check
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -29,6 +29,7 @@ urlpatterns = [
     path('dashboard/', include('accounts.urls.admin')),
     path('api/', include('content.urls')),
     path('api/', include('progress.urls')),
+    path('health/', health_check, name='health-check'),
 
 ]
 

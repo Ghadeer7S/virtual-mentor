@@ -1,0 +1,10 @@
+env/
+.env
+__pycache__/
+media/
+.git
+.pytest_cache/
+staticfiles/
+firebase_credentials.json
+*.pyc
+*.log
