@@ -78,7 +78,7 @@ Based on the actual implementation:
 ## System Architecture
 
 ```mermaid
-%%{init: {'theme': 'neutral'}}%%
+%%{init: {'theme': 'dark'}}%%
 graph TD
   subgraph External["External / Client Access"]
     User["User / Frontend Client"]
